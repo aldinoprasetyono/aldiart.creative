@@ -1,1 +1,1874 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Informasi Kesiswaan SMP (Cloud & Hybrid)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- HTML5 QR Code Scanner -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <!-- Face API for AI Face Recognition -->
+    <script defer src="https://vladmandic.github.io/face-api/dist/face-api.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .custom-scroll::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+        .swal2-html-container { margin: 1em 0 0.3em !important; overflow-x: hidden; }
+        .swal2-popup { width: 95% !important; max-width: 600px; padding: 1.5rem !important; border-radius: 1.5rem !important; }
+        
+        .swal-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; text-align: left; }
+        @media (min-width: 640px) { .swal-grid { grid-template-columns: repeat(2, 1fr); } }
+        .swal-full { grid-column: 1 / -1; }
+        
+        .form-label { display: block; text-align: left; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 0.25rem; }
+        .form-input { width: 100%; padding: 0.625rem 0.875rem; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.75rem; font-size: 0.875rem; outline: none; transition: box-shadow 0.2s; }
+        .form-input:focus { border-color: #059669; box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2); }
+        
+        @media print {
+            body * { visibility: hidden; }
+            #printableArea, #printableArea * { visibility: visible; }
+            #printableArea { position: absolute; left: 0; top: 0; width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased overflow-hidden">
 
+    <div id="loadingOverlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-2xl shadow-xl flex items-center space-x-4 border border-slate-100">
+            <div class="animate-spin rounded-full h-8 w-8 border-3 border-emerald-600 border-t-transparent"></div>
+            <span class="font-semibold text-slate-700 text-sm" id="loadingText">Menghubungkan ke Cloud...</span>
+        </div>
+    </div>
+
+    <div id="loginView" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900 p-4">
+        <div class="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 border border-white/20">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 bg-emerald-600 text-white rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-lg shadow-emerald-600/30 mb-4"><i class="fa-solid fa-school"></i></div>
+                <h1 class="text-2xl font-bold text-slate-900" id="loginSchoolName">S I N I S</h1>
+                <p class="text-sm text-slate-500 mt-1">Sistem Informasi Kesiswaan SMP Negeri Terpadu</p>
+            </div>
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-5">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">ID Pengguna (NIP/NIS/Username)</label>
+                    <input type="text" id="loginUsername" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none transition text-sm" placeholder="Masukkan ID">
+                    <p class="text-[10px] text-slate-400 mt-1">Gunakan akhiran 'OT' setelah NIS untuk login Orang Tua (misal: 1001OT)</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Kata Sandi (Password)</label>
+                    <input type="password" id="loginPassword" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none transition text-sm" placeholder="••••••••">
+                </div>
+                <button type="submit" id="btnLogin" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-lg shadow-emerald-600/30 transition duration-200 text-sm">
+                    Masuk Aplikasi
+                </button>
+                <div class="text-center pt-2">
+                    <button type="button" onclick="window.toggleAuthMode('register')" class="text-xs font-semibold text-emerald-700 hover:underline">Belum punya akun? Registrasi Mandiri</button>
+                </div>
+            </form>
+
+            <form id="registerForm" onsubmit="window.handleRegister(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Daftar Sebagai</label>
+                    <select id="regRole" class="form-input" onchange="window.toggleRegFields(this.value)">
+                        <option value="Siswa">Siswa</option>
+                        <option value="Guru">Guru / Staf</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1" id="regIdLabel">NIS (Nomor Induk Siswa)</label>
+                    <input type="text" id="regId" required class="form-input" placeholder="Masukkan ID / NIS / NIP">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Nama Lengkap & Gelar</label>
+                    <input type="text" id="regName" required class="form-input" placeholder="Nama lengkap...">
+                </div>
+                <div id="regKelasContainer">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Kelas</label>
+                    <input type="text" id="regKelas" class="form-input" placeholder="Misal: 7-1">
+                </div>
+                <div id="regTugasContainer" class="hidden">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Tugas / Jabatan</label>
+                    <select id="regTugas" class="form-input">
+                        <option value="Guru Mapel">Guru Mapel</option>
+                        <option value="Wali Kelas">Wali Kelas</option>
+                        <option value="Guru Piket">Guru Piket</option>
+                        <option value="Guru BK">Guru BK</option>
+                        <option value="Wakabid Kesiswaan">Wakabid Kesiswaan</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">Kata Sandi (Password)</label>
+                    <input type="password" id="regPassword" required class="form-input" placeholder="••••••••">
+                </div>
+                <button type="submit" id="btnRegister" class="w-full py-3.5 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-xl shadow-lg transition duration-200 text-sm">
+                    Daftar Akun Baru
+                </button>
+                <div class="text-center pt-2">
+                    <button type="button" onclick="window.toggleAuthMode('login')" class="text-xs font-semibold text-slate-600 hover:underline">Sudah punya akun? Masuk</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="appView" class="h-screen flex hidden relative">
+        <div id="sidebarBackdrop" class="fixed inset-0 bg-slate-900/60 z-40 hidden lg:hidden transition-opacity" onclick="window.toggleSidebar()"></div>
+
+        <aside id="sidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col fixed inset-y-0 left-0 z-50 transform -translate-x-full lg:translate-x-0 lg:static transition-transform duration-300 border-r border-slate-800 shadow-2xl lg:shadow-none">
+            <div class="p-6 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-3 overflow-hidden">
+                    <div class="w-10 h-10 bg-emerald-600 text-white rounded-xl shrink-0 flex items-center justify-center font-bold shadow-md shadow-emerald-600/20"><i class="fa-solid fa-cloud text-sm"></i></div>
+                    <div class="truncate">
+                        <h2 class="font-bold text-white text-sm truncate" id="sidebarSchoolName">SIM Kesiswaan</h2>
+                        <span class="text-xs text-emerald-400 font-medium" id="sidebarRoleBadge">Role: OPS</span>
+                    </div>
+                </div>
+                <button onclick="window.toggleSidebar()" class="lg:hidden text-slate-400 hover:text-white p-2">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <nav id="sidebarMenu" class="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto custom-scroll"></nav>
+            <div class="p-4 border-t border-slate-800">
+                <button onclick="handleLogout()" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-500/10 transition font-medium text-sm">
+                    <i class="fa-solid fa-right-from-bracket w-5"></i><span>Keluar Sistem</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="flex-1 flex flex-col min-w-0 bg-slate-50 h-screen overflow-hidden">
+            <header class="bg-white border-b border-slate-200 h-16 sm:h-20 flex shrink-0 items-center justify-between px-4 sm:px-8 z-30 shadow-xs">
+                <div class="flex items-center space-x-4">
+                    <button onclick="window.toggleSidebar()" class="text-slate-500 hover:text-emerald-600 transition p-2 -ml-2 lg:hidden">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <h1 id="pageTitle" class="text-lg sm:text-xl font-bold text-slate-800 truncate">Dashboard</h1>
+                </div>
+                <div class="flex items-center space-x-4 shrink-0">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-bold text-slate-800 truncate max-w-[150px]" id="currentUserName">Administrator</p>
+                        <p class="text-xs text-slate-500 font-medium truncate max-w-[150px]" id="currentUserRole">Operator Sistem</p>
+                    </div>
+                    <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold shadow-sm shrink-0"><i class="fa-solid fa-user-shield"></i></div>
+                </div>
+            </header>
+            <main id="mainContent" class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto custom-scroll w-full"></main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBm9oLwj4aYaD5RTNTAnaOZzg2qmddoEIw",
+          authDomain: "kesiswaan-24.firebaseapp.com",
+          projectId: "kesiswaan-24",
+          storageBucket: "kesiswaan-24.firebasestorage.app",
+          messagingSenderId: "760886773941",
+          appId: "1:760886773941:web:9b6a03f2c7c353a80896fc",
+          measurementId: "G-F4H2TEXXF9"
+        };
+
+        window.appId = 'default-smp-cloud-app';
+        window.GAS_URL = "https://script.google.com/macros/s/AKfycbxzp_DftyLvf-ikAEh7T61gzmFaSFi8QwjcMqLCCl3PFcNVvB-omtFoI7e3Zm6QCb-s/exec"; 
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        window.currentUser = null;
+        window.appData = {
+            schoolProfile: { nama: "SMP Negeri Terpadu", npsn: "12345678", alamat: "Jl. Pendidikan No. 1", telepon: "021-555123", modeAbsenAktif: 'Masuk', logo: '' },
+            permissions: [], classes: [], students: [], teachers: [], violations: [], attendance: [], messages: [], tataTertib: []
+        };
+
+        const stdRoles = ['Admin', 'Wakabid Kesiswaan', 'Admin/TU', 'Wali Kelas', 'Guru BK', 'Guru Piket', 'Siswa', 'Orang Tua'];
+        
+        window.activeDataMasterTab = 'profil';
+        window.currentPage = 'dashboard';
+        window.cardSettings = { bgTheme: 'bg-white border border-slate-300', opacity: '1', font: 'Inter', size: 'text-xs', textColor: 'text-slate-800', accent: 'text-emerald-700', filterKelas: 'ALL', customColor: '#059669', customFontSize: '12' };
+
+        const menus = [
+            { id: 'dashboard', label: 'Dashboard Utama', icon: 'fa-chart-pie' },
+            { id: 'datamaster', label: 'Data Master', icon: 'fa-database' },
+            { id: 'tatatertibsekolah', label: 'Tata Tertib Sekolah', icon: 'fa-book-bookmark' },
+            { id: 'absensi', label: 'Presensi & RFID', icon: 'fa-fingerprint' },
+            { id: 'pelanggaran', label: 'Pelanggaran', icon: 'fa-triangle-exclamation' },
+            { id: 'kartupelajar', label: 'Kartu Pelajar', icon: 'fa-id-card' },
+            { id: 'pengaturan', label: 'Hak Akses Menu', icon: 'fa-gear' },
+            { id: 'rekapabsensi', label: 'Rekap Presensi', icon: 'fa-calendar-days' },
+            { id: 'rekappelanggaran', label: 'Rekap Pelanggaran', icon: 'fa-clipboard-list' },
+            { id: 'pesan', label: 'Pesan & Surat', icon: 'fa-envelope' },
+            { id: 'backuprestore', label: 'Backup & Restore', icon: 'fa-server', opsOnly: true }
+        ];
+
+        window.toggleSidebar = function() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (sidebar.classList.contains('-translate-x-full')) {
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('hidden');
+            }
+        };
+
+        async function initAuthAndLoad() {
+            try {
+                await signInAnonymously(auth);
+            } catch (e) {
+                console.warn("Offline fallback mode active");
+            }
+
+            const savedSession = localStorage.getItem('simKesiswaanSession');
+            if (savedSession) {
+                window.currentUser = JSON.parse(savedSession);
+                document.getElementById('loginView').classList.add('hidden');
+                document.getElementById('appView').classList.remove('hidden');
+                
+                window.showLoading(true, 'Memuat Database...');
+                await window.fetchCloudData();
+                window.showLoading(false);
+                
+                if(window.currentUser) {
+                    updateUIProfile();
+                    window.buildSidebar();
+                    window.navigateTo(window.currentPage);
+                }
+            }
+        }
+
+        window.onload = function() { initAuthAndLoad(); };
+
+        window.showLoading = function(show, text = 'Memproses data cloud...') {
+            const el = document.getElementById('loadingOverlay');
+            const textEl = document.getElementById('loadingText');
+            if (textEl) textEl.innerText = text;
+            if (show) el.classList.remove('hidden'); else el.classList.add('hidden');
+        };
+
+        function updateUIProfile() {
+            if (!window.currentUser) return;
+            const badge = document.getElementById('sidebarRoleBadge');
+            if (badge) badge.innerText = 'Role: ' + window.currentUser.role;
+            const uName = document.getElementById('currentUserName');
+            if (uName) uName.innerText = window.currentUser.name;
+            const uRole = document.getElementById('currentUserRole');
+            if (uRole) uRole.innerText = window.currentUser.role;
+            
+            if(window.appData && window.appData.schoolProfile && window.appData.schoolProfile.nama) {
+                const sName = document.getElementById('sidebarSchoolName');
+                if (sName) sName.innerText = window.appData.schoolProfile.nama;
+                const lName = document.getElementById('loginSchoolName');
+                if (lName) lName.innerText = window.appData.schoolProfile.nama;
+            }
+        }
+
+        window.handleLogin = async function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btnLogin');
+            const user = document.getElementById('loginUsername').value.trim();
+            const pass = document.getElementById('loginPassword').value.trim();
+
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memverifikasi...';
+            window.showLoading(true, 'Autentikasi Cloud...');
+
+            await window.fetchCloudData();
+
+            let authValid = false;
+            let userInfo = null;
+
+            if (user === 'ops' && pass === '123456') {
+                authValid = true; userInfo = { role: 'OPS', identifier: 'ops', name: 'Operator Sistem' };
+            } else {
+                let checkUser = user;
+                let isParent = false;
+                
+                if (user.toUpperCase().endsWith('OT')) {
+                    isParent = true;
+                    checkUser = user.substring(0, user.length - 2);
+                }
+
+                const foundSiswa = window.appData.students.find(s => String(s.nis) === checkUser && (String(s.nis) === pass || String(s.nisn) === pass || String(s.password) === pass));
+                if (foundSiswa) {
+                    authValid = true; 
+                    if (isParent) {
+                        userInfo = { role: 'Orang Tua', identifier: foundSiswa.nis, name: 'Ortu: ' + foundSiswa.nama };
+                    } else {
+                        userInfo = { role: 'Siswa', identifier: foundSiswa.nis, name: foundSiswa.nama };
+                    }
+                } else {
+                    const foundGuru = window.appData.teachers.find(t => String(t.nip) === user && (String(t.nip) === pass || String(t.password) === pass));
+                    if (foundGuru) {
+                        let assignedRole = foundGuru.tugas || 'Guru';
+                        if (!stdRoles.includes(assignedRole) && assignedRole !== 'Admin') assignedRole = 'Admin/TU';
+                        authValid = true; 
+                        userInfo = { role: assignedRole, identifier: foundGuru.nip, name: foundGuru.nama };
+                    }
+                }
+            }
+
+            btn.innerHTML = 'Masuk Aplikasi';
+            window.showLoading(false);
+
+            if (authValid) {
+                window.currentUser = userInfo;
+                localStorage.setItem('simKesiswaanSession', JSON.stringify(window.currentUser));
+                document.getElementById('loginView').classList.add('hidden');
+                document.getElementById('appView').classList.remove('hidden');
+                updateUIProfile();
+                window.buildSidebar();
+                window.navigateTo('dashboard');
+            } else {
+                Swal.fire('Gagal Masuk', 'ID atau Password salah!', 'error');
+            }
+        };
+
+        window.toggleAuthMode = function(mode) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            if (mode === 'register') {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+            } else {
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+            }
+        };
+
+        window.toggleRegFields = function(role) {
+            const clsC = document.getElementById('regKelasContainer');
+            const tgsC = document.getElementById('regTugasContainer');
+            const lbl = document.getElementById('regIdLabel');
+            if (role === 'Siswa') {
+                clsC.classList.remove('hidden');
+                tgsC.classList.add('hidden');
+                lbl.innerText = 'NIS (Nomor Induk Siswa)';
+            } else {
+                clsC.classList.add('hidden');
+                tgsC.classList.remove('hidden');
+                lbl.innerText = 'NIP / ID Guru';
+            }
+        };
+
+        window.handleRegister = async function(e) {
+            e.preventDefault();
+            const role = document.getElementById('regRole').value;
+            const id = document.getElementById('regId').value.trim();
+            const name = document.getElementById('regName').value.trim();
+            const pass = document.getElementById('regPassword').value.trim();
+
+            if (!id || !name || !pass) return Swal.fire('Error', 'Semua kolom wajib diisi!', 'error');
+
+            window.showLoading(true, 'Mendaftarkan akun...');
+            try {
+                if (role === 'Siswa') {
+                    const kelas = document.getElementById('regKelas').value.trim() || '7-1';
+                    const newS = { nis: id, nisn: id, nama: name, kelas: kelas, jk: 'L', agama: 'Islam', alamat: '', tahunMasuk: new Date().getFullYear(), foto: '', password: pass };
+                    window.appData.students.push(newS);
+                    await window.saveToFirebase('students', id, newS);
+                } else {
+                    const tugas = document.getElementById('regTugas').value;
+                    const newT = { nip: id, nama: name, tugas: tugas, telepon: '', email: '', password: pass, kelasWali: '' };
+                    window.appData.teachers.push(newT);
+                    await window.saveToFirebase('teachers', id, newT);
+                }
+                window.showLoading(false);
+                Swal.fire('Registrasi Berhasil', 'Akun berhasil dibuat! Silakan masuk.', 'success');
+                window.toggleAuthMode('login');
+                document.getElementById('registerForm').reset();
+            } catch(err) {
+                window.showLoading(false);
+                Swal.fire('Gagal', err.message, 'error');
+            }
+        };
+
+        window.handleLogout = function() {
+            window.currentUser = null;
+            localStorage.removeItem('simKesiswaanSession');
+            document.getElementById('appView').classList.add('hidden');
+            document.getElementById('loginView').classList.remove('hidden');
+            document.getElementById('loginForm').reset();
+        };
+
+        window.fetchCloudData = async function() {
+            try {
+                const basePathStr = `artifacts/${window.appId}/public/data`;
+                const collectionsToFetch = ['schoolProfile', 'permissions', 'classes', 'students', 'teachers', 'tataTertib', 'violations', 'attendance', 'messages'];
+                const promises = collectionsToFetch.map(col => getDocs(collection(db, `${basePathStr}/${col}`)));
+                const snaps = await Promise.all(promises);
+
+                if (!snaps[0].empty) {
+                    window.appData.schoolProfile = snaps[0].docs[0].data();
+                    if(!window.appData.schoolProfile.modeAbsenAktif) window.appData.schoolProfile.modeAbsenAktif = 'Masuk';
+                }
+                
+                window.appData.permissions = snaps[1].docs.map(d => d.data());
+                stdRoles.forEach(r => {
+                    if(!window.appData.permissions.find(p => p.role === r)) {
+                        window.appData.permissions.push({ role: r, dashboard: true, datamaster: false, tatatertibsekolah: true, absensi: false, pelanggaran: false, kartupelajar: false, pengaturan: false, rekapabsensi: false, rekappelanggaran: false, pesan: true });
+                    }
+                });
+
+                window.appData.classes = snaps[2].docs.map(d => d.data());
+                window.appData.students = snaps[3].docs.map(d => d.data());
+                window.appData.teachers = snaps[4].docs.map(d => d.data());
+                window.appData.tataTertib = snaps[5].docs.map(d => d.data());
+                window.appData.violations = snaps[6].docs.map(d => d.data());
+                window.appData.attendance = snaps[7].docs.map(d => d.data());
+                window.appData.messages = snaps[8].docs.map(d => d.data());
+
+                localStorage.setItem('simKesiswaanCache', JSON.stringify(window.appData));
+            } catch (err) {
+                const cached = localStorage.getItem('simKesiswaanCache');
+                if (cached) window.appData = JSON.parse(cached);
+            }
+            if (window.currentUser) updateUIProfile();
+        };
+
+        window.saveToFirebase = async function(collectionName, docId, dataObj) {
+            try {
+                const basePathStr = `artifacts/${window.appId}/public/data/${collectionName}`;
+                await setDoc(doc(db, basePathStr, docId), dataObj);
+                
+                if ((collectionName === 'attendance' || collectionName === 'violations') && window.GAS_URL && window.GAS_URL.startsWith('http')) {
+                    fetch(window.GAS_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'update', sheetName: collectionName, payload: dataObj, id: docId })
+                    }).catch(e => console.warn('Sync to Sheet Error:', e));
+                }
+            } catch(e) { console.error("Firebase Error:", e); }
+            localStorage.setItem('simKesiswaanCache', JSON.stringify(window.appData));
+        };
+        
+        window.deleteFromFirebase = async function(collectionName, docId) {
+            try {
+                const basePathStr = `artifacts/${window.appId}/public/data/${collectionName}`;
+                await deleteDoc(doc(db, basePathStr, docId));
+                
+                if ((collectionName === 'attendance' || collectionName === 'violations') && window.GAS_URL && window.GAS_URL.startsWith('http')) {
+                    fetch(window.GAS_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action: 'delete', sheetName: collectionName, id: docId })
+                    }).catch(e => console.warn('Sync to Sheet Error:', e));
+                }
+            } catch(e) { console.error("Firebase Error:", e); }
+            localStorage.setItem('simKesiswaanCache', JSON.stringify(window.appData));
+        };
+
+        function getRolePermissions(role) {
+            if (role === 'OPS') return { dashboard:true, datamaster:true, tatatertibsekolah:true, absensi:true, pelanggaran:true, kartupelajar:true, pengaturan:true, rekapabsensi:true, rekappelanggaran:true, pesan:true, backuprestore:true };
+            const perm = window.appData.permissions.find(p => String(p.role).trim().toLowerCase() === String(role).trim().toLowerCase());
+            return perm || { dashboard:true, tatatertibsekolah:true, pesan:true };
+        }
+
+        window.buildSidebar = function() {
+            const menuContainer = document.getElementById('sidebarMenu');
+            if(!menuContainer) return;
+            menuContainer.innerHTML = '';
+            const perms = getRolePermissions(window.currentUser.role);
+
+            menus.forEach(m => {
+                if (m.opsOnly && window.currentUser.role !== 'OPS') return;
+                const access = perms[m.id] === true || perms[m.id] === 'TRUE' || perms[m.id] === 'true' || m.id === 'dashboard' || m.id === 'pesan';
+                
+                if (window.currentUser.role === 'OPS' || access) {
+                    const a = document.createElement('a');
+                    a.href = '#';
+                    a.onclick = (e) => { 
+                        e.preventDefault(); 
+                        window.navigateTo(m.id);
+                        if (window.innerWidth < 1024) window.toggleSidebar(); 
+                    };
+                    a.id = 'menu-' + m.id;
+                    a.className = "flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-emerald-600/20 hover:text-white transition font-medium text-sm";
+                    a.innerHTML = `<i class="fa-solid ${m.icon} w-5 text-emerald-400"></i><span class="truncate">${m.label}</span>`;
+                    menuContainer.appendChild(a);
+                }
+            });
+        };
+
+        window.navigateTo = function(viewId) {
+            if (window.currentPage === 'absensi' && viewId !== 'absensi') {
+                if (window.html5QrCode && window.isCameraScanning) {
+                    window.html5QrCode.stop().then(() => { 
+                        window.html5QrCode.clear(); window.html5QrCode = null; window.isCameraScanning = false; 
+                    }).catch(() => { window.html5QrCode = null; window.isCameraScanning = false; });
+                }
+            }
+
+            window.currentPage = viewId;
+            document.querySelectorAll('#sidebarMenu a').forEach(el => el.classList.remove('bg-emerald-600', 'text-white'));
+            const activeMenu = document.getElementById('menu-' + viewId);
+            if (activeMenu) activeMenu.classList.add('bg-emerald-600', 'text-white');
+
+            const titleMap = { dashboard: 'Dashboard', datamaster: 'Data Master', tatatertibsekolah: 'Tata Tertib Sekolah', absensi: 'Presensi & RFID', pelanggaran: 'Pelanggaran Siswa', kartupelajar: 'Kartu Pelajar', pengaturan: 'Hak Akses Menu', rekapabsensi: 'Rekap Presensi', rekappelanggaran: 'Rekap Pelanggaran', pesan: 'Pesan & Surat', backuprestore: 'Backup & Restore' };
+            document.getElementById('pageTitle').innerText = titleMap[viewId] || 'Dashboard';
+
+            const main = document.getElementById('mainContent');
+            if(!main) return;
+            main.innerHTML = '';
+            
+            if (viewId === 'dashboard') renderDashboard(main);
+            else if (viewId === 'datamaster') renderDataMaster(main);
+            else if (viewId === 'tatatertibsekolah') renderTataTertibSekolah(main);
+            else if (viewId === 'absensi') renderAbsensi(main);
+            else if (viewId === 'pelanggaran') renderPelanggaran(main);
+            else if (viewId === 'kartupelajar') renderKartuPelajar(main);
+            else if (viewId === 'pengaturan') renderPengaturan(main);
+            else if (viewId === 'rekapabsensi') { renderRekapAbsensi(main); window.initRekapAbsenFilters?.(); }
+            else if (viewId === 'rekappelanggaran') { renderRekapPelanggaran(main); window.initRekapVioFilters?.(); }
+            else if (viewId === 'pesan') renderPesan(main);
+            else if (viewId === 'backuprestore') renderBackupRestore(main);
+        };
+
+        window.switchDataMasterTab = function(tabName) {
+            window.activeDataMasterTab = tabName;
+            renderDataMaster(document.getElementById('mainContent'));
+        };
+
+        window.toggleAllCheckboxes = function(master, className) {
+            document.querySelectorAll('.' + className).forEach(cb => cb.checked = master.checked);
+        };
+
+        window.deleteSelected = function(collectionName, className, renderCallbackName) {
+            const checked = Array.from(document.querySelectorAll('.' + className + ':checked')).map(cb => cb.value);
+            if (checked.length === 0) return Swal.fire('Info', 'Tidak ada data yang dipilih', 'info');
+            Swal.fire({
+                title: `Hapus ${checked.length} data terpilih?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                confirmButtonText: 'Ya, Hapus Semua'
+            }).then(async (res) => {
+                if (res.isConfirmed) {
+                    window.showLoading(true, 'Menghapus data...');
+                    for (const id of checked) {
+                        if (collectionName === 'students') {
+                            window.appData.students = window.appData.students.filter(x => String(x.nis) !== String(id));
+                        } else if (collectionName === 'teachers') {
+                            window.appData.teachers = window.appData.teachers.filter(x => String(x.nip) !== String(id));
+                        } else if (collectionName === 'classes') {
+                            window.appData.classes = window.appData.classes.filter(x => x.id !== id);
+                        } else if (collectionName === 'tataTertib') {
+                            window.appData.tataTertib = window.appData.tataTertib.filter(x => x.id !== id);
+                        } else if (collectionName === 'attendance') {
+                            window.appData.attendance = window.appData.attendance.filter(x => x.id !== id);
+                        } else if (collectionName === 'violations') {
+                            window.appData.violations = window.appData.violations.filter(x => x.id !== id);
+                        }
+                        await window.deleteFromFirebase(collectionName, String(id));
+                    }
+                    window.showLoading(false);
+                    Swal.fire('Terhapus', 'Data terpilih berhasil dihapus.', 'success');
+                    if (window[renderCallbackName]) window[renderCallbackName](document.getElementById('mainContent'));
+                }
+            });
+        };
+
+        function renderDashboard(container) {
+            const role = window.currentUser.role;
+            const isStudent = ['Siswa', 'Orang Tua'].includes(role);
+            
+            if (isStudent) {
+                const myAtt = window.appData.attendance.filter(a => String(a.nis) === String(window.currentUser.identifier));
+                const myVio = window.appData.violations.filter(v => String(v.nis) === String(window.currentUser.identifier));
+                const totalPoin = myVio.reduce((sum, v) => sum + (parseInt(v.poin) || 0), 0);
+                const attHadir = myAtt.filter(a => String(a.status).includes('Hadir')).length;
+                
+                container.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-6 md:p-8 text-white shadow-xl flex items-center justify-between">
+                            <div><h2 class="text-2xl sm:text-3xl font-bold">Halo, ${window.currentUser.name}!</h2><p class="text-blue-100 mt-2 text-xs sm:text-sm">Pantau riwayat presensi dan kedisiplinan Anda.</p></div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border flex items-center space-x-4"><div class="w-14 h-14 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center font-bold"><i class="fa-solid fa-calendar-check text-xl"></i></div><div><p class="text-xs text-slate-500 font-bold uppercase">Hadir</p><h3 class="text-xl font-bold">${attHadir} Hari</h3></div></div>
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border flex items-center space-x-4"><div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center font-bold"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div><div><p class="text-xs text-slate-500 font-bold uppercase">Pelanggaran</p><h3 class="text-xl font-bold">${myVio.length} Kali</h3></div></div>
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border flex items-center space-x-4"><div class="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center font-bold"><i class="fa-solid fa-circle-exclamation text-xl"></i></div><div><p class="text-xs text-slate-500 font-bold uppercase">Poin Hukuman</p><h3 class="text-xl font-bold">${totalPoin} Poin</h3></div></div>
+                        </div>
+                    </div>`;
+            } else {
+                container.innerHTML = `
+                    <div class="space-y-6">
+                        <div class="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-3xl p-6 md:p-8 text-white shadow-xl flex items-center justify-between">
+                            <div><h2 class="text-2xl sm:text-3xl font-bold">Selamat Datang, ${window.currentUser.name}!</h2><p class="text-emerald-100 mt-2 text-xs sm:text-sm">Sistem Kesiswaan & Manajemen Presensi Terpadu.</p></div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border flex items-center space-x-4"><div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center font-bold"><i class="fa-solid fa-users text-xl"></i></div><div><p class="text-xs text-slate-500 font-bold uppercase">Siswa</p><h3 class="text-xl font-bold">${window.appData.students.length}</h3></div></div>
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border flex items-center space-x-4"><div class="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center font-bold"><i class="fa-solid fa-chalkboard-user text-xl"></i></div><div><p class="text-xs text-slate-500 font-bold uppercase">Guru</p><h3 class="text-xl font-bold">${window.appData.teachers.length}</h3></div></div>
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border flex items-center space-x-4"><div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center font-bold"><i class="fa-solid fa-triangle-exclamation text-xl"></i></div><div><p class="text-xs text-slate-500 font-bold uppercase">Pelanggaran</p><h3 class="text-xl font-bold">${window.appData.violations.length}</h3></div></div>
+                            <div class="bg-white p-6 rounded-3xl shadow-sm border flex items-center space-x-4"><div class="w-14 h-14 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center font-bold"><i class="fa-solid fa-calendar-check text-xl"></i></div><div><p class="text-xs text-slate-500 font-bold uppercase">Presensi</p><h3 class="text-xl font-bold">${window.appData.attendance.length}</h3></div></div>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        function renderDataMaster(container) {
+            const isOpsOrAdmin = ['OPS', 'Admin', 'Wakabid Kesiswaan', 'Admin/TU'].includes(window.currentUser.role);
+            const tab = window.activeDataMasterTab;
+            const btnClass = (t) => `px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition whitespace-nowrap shrink-0 ${tab === t ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`;
+
+            container.innerHTML = `
+                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 p-4 sm:p-8 space-y-6">
+                    <div class="w-full overflow-x-auto custom-scroll pb-2">
+                        <div class="flex gap-2 w-max min-w-full border-b pb-2">
+                            <button onclick="window.switchDataMasterTab('profil')" class="${btnClass('profil')}">Profil Sekolah</button>
+                            <button onclick="window.switchDataMasterTab('kelas')" class="${btnClass('kelas')}">Data Kelas</button>
+                            <button onclick="window.switchDataMasterTab('siswa')" class="${btnClass('siswa')}">Data Siswa</button>
+                            <button onclick="window.switchDataMasterTab('guru')" class="${btnClass('guru')}">Data Guru</button>
+                            <button onclick="window.switchDataMasterTab('tatatertib')" class="${btnClass('tatatertib')}">Aturan & Poin</button>
+                        </div>
+                    </div>
+
+                    <div class="${tab === 'profil' ? '' : 'hidden'} space-y-4">
+                        <div class="p-6 bg-slate-50 rounded-2xl border flex flex-col md:flex-row items-center gap-6">
+                            ${window.appData.schoolProfile.logo ? `<img src="${window.appData.schoolProfile.logo}" class="w-24 h-24 object-contain bg-white p-2 rounded-xl border">` : `<div class="w-24 h-24 bg-slate-200 rounded-xl flex items-center justify-center text-slate-400"><i class="fa-solid fa-image text-2xl"></i></div>`}
+                            <div class="flex-1 space-y-2">
+                                <h3 class="text-lg font-bold">${window.appData.schoolProfile.nama}</h3>
+                                <p class="text-xs text-slate-500">NPSN: ${window.appData.schoolProfile.npsn || '-'} | Telp: ${window.appData.schoolProfile.telepon || '-'}</p>
+                                <p class="text-xs text-slate-500">${window.appData.schoolProfile.alamat || '-'}</p>
+                                ${isOpsOrAdmin ? `<button onclick="window.editSchoolProfile()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold shadow">Edit Profil & Logo</button>` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="${tab === 'kelas' ? '' : 'hidden'} space-y-4">
+                        ${isOpsOrAdmin ? `<div class="flex gap-2"><button onclick="window.openClassModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold"><i class="fa-solid fa-plus mr-1"></i>Tambah Kelas</button> <button onclick="window.deleteSelected('classes', 'chk-kelas', 'renderDataMaster')" class="px-4 py-2 bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-semibold hover:bg-rose-600 hover:text-white transition"><i class="fa-solid fa-trash-can mr-1"></i>Hapus Terpilih</button></div>` : ''}
+                        <div class="overflow-x-auto"><table class="w-full text-left text-sm whitespace-nowrap"><thead class="bg-slate-100"><tr>
+                        ${isOpsOrAdmin ? `<th class="p-3 w-10 text-center"><input type="checkbox" onchange="window.toggleAllCheckboxes(this, 'chk-kelas')" class="w-4 h-4 cursor-pointer accent-emerald-600"></th>` : ''}
+                        <th class="p-3">ID</th><th class="p-3">Nama Kelas</th><th class="p-3 text-center">Aksi</th></tr></thead>
+                        <tbody class="divide-y">${window.appData.classes.map(c => `<tr>${isOpsOrAdmin ? `<td class="p-3 text-center"><input type="checkbox" class="chk-kelas w-4 h-4 cursor-pointer accent-emerald-600" value="${c.id}"></td>` : ''}<td class="p-3">${c.id}</td><td class="p-3 font-bold text-emerald-700">${c.nama}</td><td class="p-3 text-center"><button onclick="window.openClassModal('${c.id}')" class="text-emerald-600 mr-2"><i class="fa-solid fa-pen"></i></button><button onclick="window.deleteClass('${c.id}')" class="text-rose-500"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div>
+                    </div>
+
+                    <div class="${tab === 'siswa' ? '' : 'hidden'} space-y-4">
+                        ${isOpsOrAdmin ? `<div class="flex gap-2"><button onclick="window.openStudentModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold"><i class="fa-solid fa-plus mr-1"></i>Tambah Siswa</button> <button onclick="window.deleteSelected('students', 'chk-siswa', 'renderDataMaster')" class="px-4 py-2 bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-semibold hover:bg-rose-600 hover:text-white transition"><i class="fa-solid fa-trash-can mr-1"></i>Hapus Terpilih</button></div>` : ''}
+                        <div class="overflow-x-auto"><table class="w-full text-left text-sm whitespace-nowrap"><thead class="bg-slate-100"><tr>
+                        ${isOpsOrAdmin ? `<th class="p-3 w-10 text-center"><input type="checkbox" onchange="window.toggleAllCheckboxes(this, 'chk-siswa')" class="w-4 h-4 cursor-pointer accent-emerald-600"></th>` : ''}
+                        <th class="p-3">NIS</th><th class="p-3">Nama</th><th class="p-3">Kelas</th><th class="p-3">Face ID</th><th class="p-3 text-center">Aksi</th></tr></thead>
+                        <tbody class="divide-y">${window.appData.students.map(s => `<tr>${isOpsOrAdmin ? `<td class="p-3 text-center"><input type="checkbox" class="chk-siswa w-4 h-4 cursor-pointer accent-emerald-600" value="${s.nis}"></td>` : ''}<td class="p-3">${s.nis}</td><td class="p-3 font-medium">${s.nama}</td><td class="p-3">${s.kelas||'-'}</td><td class="p-3"><span class="px-2 py-1 ${s.faceData ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'} rounded text-[10px] font-bold">${s.faceData ? 'Terdaftar' : 'Belum'}</span></td><td class="p-3 text-center"><button onclick="window.openStudentModal('${s.nis}')" class="text-emerald-600 mr-2"><i class="fa-solid fa-pen"></i></button><button onclick="window.deleteStudent('${s.nis}')" class="text-rose-500"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div>
+                    </div>
+
+                    <div class="${tab === 'guru' ? '' : 'hidden'} space-y-4">
+                        ${isOpsOrAdmin ? `<div class="flex gap-2"><button onclick="window.openTeacherModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold"><i class="fa-solid fa-plus mr-1"></i>Tambah Guru</button> <button onclick="window.deleteSelected('teachers', 'chk-guru', 'renderDataMaster')" class="px-4 py-2 bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-semibold hover:bg-rose-600 hover:text-white transition"><i class="fa-solid fa-trash-can mr-1"></i>Hapus Terpilih</button></div>` : ''}
+                        <div class="overflow-x-auto"><table class="w-full text-left text-sm whitespace-nowrap"><thead class="bg-slate-100"><tr>
+                        ${isOpsOrAdmin ? `<th class="p-3 w-10 text-center"><input type="checkbox" onchange="window.toggleAllCheckboxes(this, 'chk-guru')" class="w-4 h-4 cursor-pointer accent-emerald-600"></th>` : ''}
+                        <th class="p-3">NIP</th><th class="p-3">Nama</th><th class="p-3">Tugas</th><th class="p-3">Wali Kelas</th><th class="p-3 text-center">Aksi</th></tr></thead>
+                        <tbody class="divide-y">${window.appData.teachers.map(t => `<tr>${isOpsOrAdmin ? `<td class="p-3 text-center"><input type="checkbox" class="chk-guru w-4 h-4 cursor-pointer accent-emerald-600" value="${t.nip}"></td>` : ''}<td class="p-3">${t.nip}</td><td class="p-3 font-medium">${t.nama}</td><td class="p-3"><span class="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">${t.tugas||'-'}</span></td><td class="p-3 font-bold text-blue-600">${t.kelasWali || '-'}</td><td class="p-3 text-center"><button onclick="window.openTeacherModal('${t.nip}')" class="text-emerald-600 mr-2"><i class="fa-solid fa-pen"></i></button><button onclick="window.deleteTeacher('${t.nip}')" class="text-rose-500"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div>
+                    </div>
+
+                    <div class="${tab === 'tatatertib' ? '' : 'hidden'} space-y-4">
+                        ${isOpsOrAdmin ? `<div class="flex gap-2"><button onclick="window.openRulesModal()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold"><i class="fa-solid fa-plus mr-1"></i>Tambah Aturan</button> <button onclick="window.deleteSelected('tataTertib', 'chk-tatatertib', 'renderDataMaster')" class="px-4 py-2 bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-semibold hover:bg-rose-600 hover:text-white transition"><i class="fa-solid fa-trash-can mr-1"></i>Hapus Terpilih</button></div>` : ''}
+                        <div class="overflow-x-auto"><table class="w-full text-left text-sm whitespace-nowrap"><thead class="bg-slate-100"><tr>
+                        ${isOpsOrAdmin ? `<th class="p-3 w-10 text-center"><input type="checkbox" onchange="window.toggleAllCheckboxes(this, 'chk-tatatertib')" class="w-4 h-4 cursor-pointer accent-emerald-600"></th>` : ''}
+                        <th class="p-3">ID</th><th class="p-3">Jenis Pelanggaran</th><th class="p-3 text-center">Poin</th><th class="p-3 text-center">Aksi</th></tr></thead>
+                        <tbody class="divide-y">${window.appData.tataTertib.map(tt => `<tr>${isOpsOrAdmin ? `<td class="p-3 text-center"><input type="checkbox" class="chk-tatatertib w-4 h-4 cursor-pointer accent-emerald-600" value="${tt.id}"></td>` : ''}<td class="p-3">${tt.id}</td><td class="p-3">${tt.jenis}</td><td class="p-3 text-center font-bold text-rose-600">+${tt.poin}</td><td class="p-3 text-center"><button onclick="window.openRulesModal('${tt.id}')" class="text-emerald-600 mr-2"><i class="fa-solid fa-pen"></i></button><button onclick="window.deleteRule('${tt.id}')" class="text-rose-500"><i class="fa-solid fa-trash"></i></button></td></tr>`).join('')}</tbody></table></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.editSchoolProfile = async function() {
+            const { value: formValues } = await Swal.fire({
+                title: 'Ubah Profil Sekolah & Logo',
+                html: `<div class="swal-grid">
+                    <div class="swal-full"><label class="form-label">Nama Sekolah</label><input id="swal-nama" class="form-input" value="${window.appData.schoolProfile.nama}"></div>
+                    <div><label class="form-label">NPSN</label><input id="swal-npsn" class="form-input" value="${window.appData.schoolProfile.npsn||''}"></div>
+                    <div><label class="form-label">Telepon</label><input id="swal-telp" class="form-input" value="${window.appData.schoolProfile.telepon||''}"></div>
+                    <div class="swal-full"><label class="form-label">Alamat</label><input id="swal-alamat" class="form-input" value="${window.appData.schoolProfile.alamat||''}"></div>
+                    <div class="swal-full"><label class="form-label">Logo Sekolah (PNG Transparan)</label><input type="file" id="swal-logo" accept=".png,.jpg,.jpeg" class="form-input p-2 text-xs"></div>
+                </div>`,
+                focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan',
+                preConfirm: async () => {
+                    let logoB64 = window.appData.schoolProfile.logo || '';
+                    const fileInput = document.getElementById('swal-logo');
+                    if (fileInput.files.length > 0) {
+                        const file = fileInput.files[0];
+                        if (file.size > 500 * 1024) return Swal.showValidationMessage('Ukuran file maksimal 500KB');
+                        logoB64 = await new Promise(r => { const reader = new FileReader(); reader.onload = () => r(reader.result); reader.readAsDataURL(file); });
+                    }
+                    return { nama: document.getElementById('swal-nama').value, npsn: document.getElementById('swal-npsn').value, alamat: document.getElementById('swal-alamat').value, telepon: document.getElementById('swal-telp').value, modeAbsenAktif: window.appData.schoolProfile.modeAbsenAktif, logo: logoB64 };
+                }
+            });
+            if (formValues) {
+                window.appData.schoolProfile = formValues;
+                await window.saveToFirebase('schoolProfile', 'main', formValues);
+                renderDataMaster(document.getElementById('mainContent'));
+            }
+        };
+
+        window.openClassModal = async function(id = null) {
+            const c = id ? window.appData.classes.find(x => x.id === id) : { id: 'KLS_' + Date.now(), nama: '' };
+            const { value: val } = await Swal.fire({
+                title: id ? 'Edit Kelas' : 'Tambah Kelas',
+                html: `<div class="swal-grid"><div class="swal-full"><label class="form-label">Nama Kelas</label><input id="swal-nama" class="form-input" value="${c.nama || ''}" placeholder="Misal: 7-1"></div></div>`,
+                focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan',
+                preConfirm: () => ({ id: c.id, nama: document.getElementById('swal-nama').value })
+            });
+            if (val && val.nama) {
+                const idx = window.appData.classes.findIndex(x => x.id === val.id);
+                if (idx > -1) window.appData.classes[idx] = val; else window.appData.classes.push(val);
+                await window.saveToFirebase('classes', val.id, val);
+                window.navigateTo('datamaster');
+            }
+        };
+
+        window.deleteClass = async function(id) {
+            Swal.fire({ title: 'Hapus Kelas?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'Ya, Hapus' }).then(async (res) => {
+                if(res.isConfirmed) {
+                    window.appData.classes = window.appData.classes.filter(x => x.id !== id);
+                    await window.deleteFromFirebase('classes', id);
+                    window.navigateTo('datamaster');
+                }
+            });
+        };
+
+        window.openStudentModal = async function(nis = null) {
+            const s = nis ? window.appData.students.find(x => String(x.nis) === String(nis)) : { nis:'', nama:'', kelas:'', foto:'', faceData: null };
+            const clsOpts = window.appData.classes.map(c => `<option value="${c.nama}" ${s.kelas===c.nama?'selected':''}>${c.nama}</option>`).join('');
+
+            const { value: formValues } = await Swal.fire({
+                title: nis ? 'Edit Siswa & Perekaman Wajah' : 'Tambah Siswa',
+                html: `
+                    <div class="swal-grid">
+                        <div><label class="form-label">NIS</label><input id="swal-nis" class="form-input" value="${s.nis}" ${nis?'disabled':''}></div>
+                        <div><label class="form-label">Kelas</label><select id="swal-kelas" class="form-input"><option value="">Pilih</option>${clsOpts}</select></div>
+                        <div class="swal-full"><label class="form-label">Nama Lengkap</label><input id="swal-nama" class="form-input" value="${s.nama}"></div>
+                        <div class="swal-full"><label class="form-label">Foto Profil</label><input type="file" id="swal-foto" accept="image/*" class="form-input p-2 text-xs"></div>
+                        <div class="swal-full p-3 bg-slate-50 rounded-xl border text-center">
+                            <label class="form-label mb-2">Perekaman Wajah AI (Face ID)</label>
+                            <video id="enrollVideo" autoplay muted playsinline class="w-full h-40 bg-black rounded-lg object-cover mb-2"></video>
+                            <button type="button" onclick="window.captureFaceForStudent()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold"><i class="fa-solid fa-camera mr-1"></i>Rekam Wajah AI Sekarang</button>
+                            <input type="hidden" id="swal-face-data" value="${s.faceData ? JSON.stringify(s.faceData) : ''}">
+                            <p id="enrollStatus" class="text-xs text-emerald-600 mt-2 font-semibold">${s.faceData ? 'Wajah sudah terdaftar!' : 'Belum direkam'}</p>
+                        </div>
+                    </div>
+                `,
+                didOpen: async () => {
+                    try {
+                        const video = document.getElementById('enrollVideo');
+                        window.enrollStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                        video.srcObject = window.enrollStream;
+                    } catch(e) {}
+                },
+                willClose: () => {
+                    if (window.enrollStream) window.enrollStream.getTracks().forEach(t => t.stop());
+                },
+                focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan',
+                preConfirm: async () => {
+                    if (window.enrollStream) window.enrollStream.getTracks().forEach(t => t.stop());
+                    const fileInput = document.getElementById('swal-foto');
+                    let fotoB64 = s.foto || '';
+                    if (fileInput.files.length > 0) {
+                        const file = fileInput.files[0];
+                        fotoB64 = await new Promise(r => { const reader = new FileReader(); reader.onload = () => r(reader.result); reader.readAsDataURL(file); });
+                    }
+                    let faceParsed = s.faceData || null;
+                    try {
+                        const rawFace = document.getElementById('swal-face-data').value;
+                        if(rawFace) faceParsed = JSON.parse(rawFace);
+                    } catch(e) {}
+
+                    return {
+                        nis: document.getElementById('swal-nis').value,
+                        nama: document.getElementById('swal-nama').value,
+                        kelas: document.getElementById('swal-kelas').value,
+                        foto: fotoB64,
+                        faceData: faceParsed
+                    };
+                }
+            });
+
+            if (formValues && formValues.nis && formValues.nama) {
+                const idx = window.appData.students.findIndex(x => String(x.nis) === String(formValues.nis));
+                if (idx > -1) window.appData.students[idx] = formValues; else window.appData.students.push(formValues);
+                await window.saveToFirebase('students', formValues.nis, formValues);
+                window.navigateTo('datamaster');
+            }
+        };
+
+        window.captureFaceForStudent = async function() {
+            const video = document.getElementById('enrollVideo');
+            const status = document.getElementById('enrollStatus');
+            status.innerText = "Mendeteksi wajah...";
+            try {
+                if (!window.faceApiLoaded) {
+                    await faceapi.nets.tinyFaceDetector.loadFromUri('https://vladmandic.github.io/face-api/model/');
+                    await faceapi.nets.faceLandmark68Net.loadFromUri('https://vladmandic.github.io/face-api/model/');
+                    await faceapi.nets.faceRecognitionNet.loadFromUri('https://vladmandic.github.io/face-api/model/');
+                    window.faceApiLoaded = true;
+                }
+                const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                if (detection) {
+                    document.getElementById('swal-face-data').value = JSON.stringify(Array.from(detection.descriptor));
+                    status.innerHTML = '<span class="text-emerald-600 font-bold"><i class="fa-solid fa-check mr-1"></i>Wajah Berhasil Direkam!</span>';
+                } else {
+                    status.innerHTML = '<span class="text-rose-600 font-bold">Wajah tidak terdeteksi, coba posisikan dengan benar.</span>';
+                }
+            } catch(e) {
+                status.innerText = "Error AI: " + e.message;
+            }
+        };
+
+        window.deleteStudent = async function(nis) {
+            Swal.fire({ title: 'Hapus Siswa?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'Ya, Hapus' }).then(async (res) => {
+                if(res.isConfirmed) {
+                    window.appData.students = window.appData.students.filter(x => String(x.nis) !== String(nis));
+                    await window.deleteFromFirebase('students', String(nis));
+                    window.navigateTo('datamaster');
+                }
+            });
+        };
+
+        window.openTeacherModal = async function(nip = null) {
+            const t = nip ? window.appData.teachers.find(x => String(x.nip) === String(nip)) : { nip:'', nama:'', tugas:'Guru Mapel', kelasWali:'', password:'123' };
+            const clsOpts = window.appData.classes.map(c => `<option value="${c.nama}" ${t.kelasWali===c.nama?'selected':''}>${c.nama}</option>`).join('');
+
+            const { value: val } = await Swal.fire({
+                title: nip ? 'Edit Guru' : 'Tambah Guru',
+                html: `<div class="swal-grid">
+                    <div><label class="form-label">NIP</label><input id="swal-nip" class="form-input" value="${t.nip}" ${nip?'disabled':''}></div>
+                    <div><label class="form-label">Nama Lengkap</label><input id="swal-nama" class="form-input" value="${t.nama}"></div>
+                    <div><label class="form-label">Tugas</label><select id="swal-tugas" class="form-input">
+                        <option value="Guru Mapel" ${t.tugas==='Guru Mapel'?'selected':''}>Guru Mapel</option>
+                        <option value="Wali Kelas" ${t.tugas==='Wali Kelas'?'selected':''}>Wali Kelas</option>
+                        <option value="Wakabid Kesiswaan" ${t.tugas==='Wakabid Kesiswaan'?'selected':''}>Wakabid Kesiswaan</option>
+                        <option value="Guru Piket" ${t.tugas==='Guru Piket'?'selected':''}>Guru Piket</option>
+                        <option value="Guru BK" ${t.tugas==='Guru BK'?'selected':''}>Guru BK</option>
+                    </select></div>
+                    <div><label class="form-label">Wali Kelas Untuk</label><select id="swal-kelasWali" class="form-input"><option value="">Bukan Wali Kelas</option>${clsOpts}</select></div>
+                </div>`,
+                focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan',
+                preConfirm: () => ({
+                    nip: document.getElementById('swal-nip').value,
+                    nama: document.getElementById('swal-nama').value,
+                    tugas: document.getElementById('swal-tugas').value,
+                    kelasWali: document.getElementById('swal-kelasWali').value,
+                    password: t.password || '123'
+                })
+            });
+            if (val && val.nip) {
+                const idx = window.appData.teachers.findIndex(x => String(x.nip) === String(val.nip));
+                if (idx > -1) window.appData.teachers[idx] = val; else window.appData.teachers.push(val);
+                await window.saveToFirebase('teachers', val.nip, val);
+                window.navigateTo('datamaster');
+            }
+        };
+
+        window.deleteTeacher = async function(nip) {
+            Swal.fire({ title: 'Hapus Guru?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'Ya, Hapus' }).then(async (res) => {
+                if(res.isConfirmed) {
+                    window.appData.teachers = window.appData.teachers.filter(x => String(x.nip) !== String(nip));
+                    await window.deleteFromFirebase('teachers', String(nip));
+                    window.navigateTo('datamaster');
+                }
+            });
+        };
+
+        window.openRulesModal = async function(id = null) {
+            const tt = id ? window.appData.tataTertib.find(x => x.id === id) : { id: 'TT_' + Date.now(), jenis: '', poin: 10 };
+            const { value: val } = await Swal.fire({
+                title: id ? 'Edit Aturan & Poin' : 'Tambah Aturan',
+                html: `<div class="swal-grid"><div class="swal-full"><label class="form-label">Jenis Pelanggaran</label><input id="swal-jenis" class="form-input" value="${tt.jenis || ''}"></div><div class="swal-full"><label class="form-label">Poin</label><input id="swal-poin" type="number" class="form-input" value="${tt.poin || 10}"></div></div>`,
+                focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan',
+                preConfirm: () => ({ id: tt.id, jenis: document.getElementById('swal-jenis').value, poin: parseInt(document.getElementById('swal-poin').value) })
+            });
+            if (val && val.jenis) {
+                const idx = window.appData.tataTertib.findIndex(x => x.id === val.id);
+                if (idx > -1) window.appData.tataTertib[idx] = val; else window.appData.tataTertib.push(val);
+                await window.saveToFirebase('tataTertib', val.id, val);
+                window.navigateTo('datamaster');
+            }
+        };
+
+        window.deleteRule = async function(id) {
+            Swal.fire({ title: 'Hapus Aturan?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'Ya, Hapus' }).then(async (res) => {
+                if(res.isConfirmed) {
+                    window.appData.tataTertib = window.appData.tataTertib.filter(x => x.id !== id);
+                    await window.deleteFromFirebase('tataTertib', id);
+                    window.navigateTo('datamaster');
+                }
+            });
+        };
+
+        function renderTataTertibSekolah(container) {
+            const rules = window.appData.tataTertib || [];
+            container.innerHTML = `
+                <div class="bg-white rounded-3xl shadow-sm border p-6 sm:p-8 space-y-6 max-w-4xl mx-auto">
+                    <div class="flex items-center space-x-3 border-b pb-4">
+                        <div class="w-12 h-12 bg-amber-100 text-amber-700 rounded-xl flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-book-bookmark"></i></div>
+                        <div>
+                            <h3 class="text-xl font-bold">Tata Tertib & Bobot Poin Pelanggaran</h3>
+                            <p class="text-xs text-slate-500">Daftar aturan kedisiplinan dan sanksi poin yang berlaku di sekolah.</p>
+                        </div>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 p-4 rounded-2xl text-xs text-amber-800 leading-relaxed">
+                        <i class="fa-solid fa-triangle-exclamation mr-1 font-bold"></i> Setiap siswa wajib menjaga kedisiplinan dan mematuhi tata tertib sekolah ini. Akumulasi poin pelanggaran akan dipantau oleh Wali Kelas dan Guru BK.
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="p-3 w-16 text-center">No</th>
+                                    <th class="p-3">ID Aturan</th>
+                                    <th class="p-3">Bentuk / Jenis Pelanggaran</th>
+                                    <th class="p-3 text-center">Bobot Poin</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                ${rules.length === 0 ? `<tr><td colspan="4" class="text-center py-6 text-slate-400">Belum ada data tata tertib yang diinput di Data Master.</td></tr>` : rules.map((r, idx) => `
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="p-3 text-center text-slate-500">${idx + 1}</td>
+                                        <td class="p-3 font-mono text-xs text-slate-600">${r.id}</td>
+                                        <td class="p-3 font-medium text-slate-800">${r.jenis}</td>
+                                        <td class="p-3 text-center font-bold text-rose-600">+${r.poin} Poin</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.toggleCameraQR = function() {
+            const btn = document.getElementById('btnToggleCamera');
+            if (window.isCameraScanning) {
+                if (window.html5QrCode) {
+                    window.html5QrCode.stop().then(() => { window.html5QrCode.clear(); window.html5QrCode = null; window.isCameraScanning = false; btn.innerHTML = '<i class="fa-solid fa-camera mr-2"></i>Kamera QR'; }).catch(()=>{});
+                }
+            } else {
+                try {
+                    if (!window.html5QrCode) window.html5QrCode = new Html5Qrcode("qr-reader");
+                    window.html5QrCode.start(
+                        { facingMode: "environment" }, 
+                        { fps: 20, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 }, 
+                        (txt) => { 
+                            if(window.isScanningCooldown) return;
+                            window.isScanningCooldown = true;
+                            setTimeout(() => window.isScanningCooldown = false, 1500);
+                            window.submitAbsensi(txt, 'Hadir'); 
+                        }, 
+                        () => {}
+                    ).then(() => {
+                        window.isCameraScanning = true;
+                        btn.innerHTML = '<i class="fa-solid fa-stop mr-2"></i>Matikan Kamera';
+                    });
+                } catch(e) { Swal.fire('Error', 'Kamera gagal diakses.', 'error'); }
+            }
+        };
+
+        window.toggleCameraFace = async function() {
+            const btn = document.getElementById('btnToggleFace');
+            const video = document.getElementById('faceVideo');
+            const statusText = document.getElementById('camStatusText');
+
+            if (window.isCameraScanningFace) {
+                if(window.aiInterval) clearInterval(window.aiInterval);
+                if(window.aiStream) window.aiStream.getTracks().forEach(t => t.stop());
+                video.classList.add('hidden');
+                statusText.innerText = "Kamera Mati";
+                btn.innerHTML = '<i class="fa-solid fa-face-smile-scan mr-2"></i>AI Wajah';
+                window.isCameraScanningFace = false;
+            } else {
+                statusText.innerText = "Memuat AI Wajah... (Pastikan wajah menghadap cahaya)";
+                try {
+                    if (!window.faceApiLoaded) {
+                        await faceapi.nets.tinyFaceDetector.loadFromUri('https://vladmandic.github.io/face-api/model/');
+                        await faceapi.nets.faceLandmark68Net.loadFromUri('https://vladmandic.github.io/face-api/model/');
+                        await faceapi.nets.faceRecognitionNet.loadFromUri('https://vladmandic.github.io/face-api/model/');
+                        window.faceApiLoaded = true;
+                    }
+                    window.aiStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } 
+                    });
+                    video.srcObject = window.aiStream;
+                    video.classList.remove('hidden');
+                    statusText.innerText = "";
+                    window.isCameraScanningFace = true;
+                    btn.innerHTML = '<i class="fa-solid fa-stop mr-2"></i>Matikan AI';
+
+                    const enrolled = window.appData.students.filter(s => s.faceData && s.faceData.length > 0);
+                    if (enrolled.length === 0) return Swal.fire('Info', 'Belum ada data wajah siswa di Data Master.', 'info');
+                    
+                    const matchers = new faceapi.FaceMatcher(enrolled.map(s => new faceapi.LabeledFaceDescriptors(s.nis, [new Float32Array(s.faceData)])), 0.45);
+
+                    window.aiInterval = setInterval(async () => {
+                        const det = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                        if (det) {
+                            const res = matchers.findBestMatch(det.descriptor);
+                            if (res.label !== "unknown" && res.distance < 0.45) {
+                                if(window.isScanningCooldown) return;
+                                window.isScanningCooldown = true;
+                                setTimeout(() => window.isScanningCooldown = false, 2500);
+                                window.submitAbsensi(res.label, 'Hadir');
+                            }
+                        }
+                    }, 1000);
+                } catch(e) { Swal.fire('Error AI', "Gagal membuka kamera: " + e.message, 'error'); }
+            }
+        };
+
+        function renderAbsensi(container) {
+            const mode = window.appData.schoolProfile.modeAbsenAktif || 'Masuk';
+            const isOps = ['OPS','Admin','Wakabid Kesiswaan'].includes(window.currentUser.role);
+            
+            container.innerHTML = `
+                <div class="bg-white rounded-3xl shadow-sm border p-6 space-y-6">
+                    <div class="flex flex-col md:flex-row justify-between items-center border-b pb-4 gap-4">
+                        <div>
+                            <h3 class="text-xl font-bold">Presensi & Scanner</h3>
+                            <div class="flex items-center space-x-2 mt-2 bg-slate-900 text-emerald-400 px-3 py-1.5 rounded-lg w-max"><i class="fa-regular fa-clock"></i><span id="liveClock" class="font-mono font-bold">--:--:--</span></div>
+                        </div>
+                        ${isOps ? `<select onchange="window.saveModeAbsen(this.value)" class="form-input w-auto font-bold text-emerald-700 bg-emerald-50"><option value="Masuk" ${mode==='Masuk'?'selected':''}>Mode: Masuk</option><option value="Sholat" ${mode==='Sholat'?'selected':''}>Mode: Sholat Berjamaah</option><option value="Pulang" ${mode==='Pulang'?'selected':''}>Mode: Pulang</option></select>` : ''}
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="p-6 bg-emerald-50/50 border border-emerald-100 rounded-2xl space-y-4">
+                            <label class="block text-xs font-bold uppercase text-emerald-700">Pindai QR / Wajah AI / RFID</label>
+                            <div id="qr-reader" class="w-full rounded-xl overflow-hidden border-2 border-emerald-300 bg-black min-h-[220px] flex items-center justify-center text-slate-400 text-xs relative">
+                                <video id="faceVideo" autoplay muted playsinline class="hidden absolute inset-0 w-full h-full object-cover"></video>
+                                <span id="camStatusText">Kamera Mati</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button id="btnToggleCamera" onclick="window.toggleCameraQR()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-qrcode mr-1"></i>Kamera QR</button>
+                                <button id="btnToggleFace" onclick="window.toggleCameraFace()" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-face-smile-scan mr-1"></i>AI Wajah</button>
+                            </div>
+                            <input type="text" id="rfidInput" placeholder="RFID / Ketik NIS (Enter)..." onkeypress="if(event.key==='Enter') submitAbsensi(this.value, 'Hadir')" class="w-full px-4 py-3 bg-white border border-emerald-300 rounded-xl font-bold text-center">
+                        </div>
+                        <div class="p-6 bg-slate-50 border rounded-2xl flex flex-col justify-between">
+                            <div>
+                                <h4 class="font-bold text-slate-700 mb-2">Input Manual / Ijin / Sakit</h4>
+                                <p class="text-xs text-slate-500 mb-4">Catat status siswa dengan bukti surat keterangan.</p>
+                                <button onclick="window.openManualAttendanceModal()" class="w-full py-3.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold shadow">Catat Presensi Manual</button>
+                            </div>
+                            ${isOps ? `<div class="mt-6 pt-6 border-t border-slate-200">
+                                <h4 class="font-bold text-slate-700 mb-2">Tutup Presensi Hari Ini</h4>
+                                <p class="text-[10px] text-slate-500 mb-3">Tandai otomatis seluruh siswa yang belum absen hari ini sebagai Alpha.</p>
+                                <button onclick="window.generateAlphaToday()" class="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-xl text-sm font-bold transition shadow-sm"><i class="fa-solid fa-user-xmark mr-2"></i>Generate Alpha Massal</button>
+                            </div>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+            
+            setInterval(() => {
+                const el = document.getElementById('liveClock');
+                if(el) el.innerText = new Date().toLocaleTimeString('id-ID');
+            }, 1000);
+        }
+
+        window.saveModeAbsen = async function(val) {
+            window.appData.schoolProfile.modeAbsenAktif = val;
+            await window.saveToFirebase('schoolProfile', 'main', window.appData.schoolProfile);
+        };
+
+        window.openManualAttendanceModal = async function() {
+            let opts = window.appData.students.map(s => `<option value="${s.nis}">${s.nis} - ${s.nama}</option>`).join('');
+            const { value: val } = await Swal.fire({
+                title: 'Presensi Manual',
+                html: `<div class="swal-grid">
+                    <div class="swal-full"><label class="form-label">Siswa</label><select id="swal-nis" class="form-input">${opts}</select></div>
+                    <div><label class="form-label">Tanggal</label><input type="date" id="swal-date" class="form-input" value="${new Date().toISOString().split('T')[0]}"></div>
+                    <div><label class="form-label">Status</label><select id="swal-status" class="form-input"><option value="Hadir">Hadir</option><option value="Ijin">Ijin</option><option value="Sakit">Sakit</option><option value="Tanpa Keterangan">Alpha</option></select></div>
+                </div>`,
+                focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan',
+                preConfirm: () => ({ nis: document.getElementById('swal-nis').value, date: document.getElementById('swal-date').value, status: document.getElementById('swal-status').value })
+            });
+            if (val && val.nis) {
+                const s = window.appData.students.find(x => x.nis === val.nis);
+                const record = { id: 'ATT_' + Date.now(), waktu: val.date + ' ' + new Date().toLocaleTimeString('id-ID'), tanggalOnly: val.date, nis: s.nis, nama: s.nama, kelas: s.kelas, status: val.status, mode: window.appData.schoolProfile.modeAbsenAktif || 'Masuk' };
+                window.appData.attendance.push(record);
+                await window.saveToFirebase('attendance', record.id, record);
+                Swal.fire({title: 'Sukses', icon: 'success', timer: 1000, showConfirmButton: false});
+            }
+        };
+
+        window.speakNotification = function(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const msg = new SpeechSynthesisUtterance(text);
+                msg.lang = 'id-ID';
+                msg.rate = 1.1;
+                window.speechSynthesis.speak(msg);
+            }
+        };
+
+        window.submitAbsensi = async function(nis, status) {
+            if (!window.scanLocks) window.scanLocks = {};
+            const now = Date.now();
+            if (window.scanLocks[nis] && (now - window.scanLocks[nis] < 4000)) return;
+            window.scanLocks[nis] = now;
+
+            const student = window.appData.students.find(s => String(s.nis) === String(nis));
+            if(!student) {
+                window.speakNotification('Siswa tidak ditemukan.');
+                return Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: 'NIS Tidak Valid!', showConfirmButton: false, timer: 2000 });
+            }
+            
+            const curMode = window.appData.schoolProfile.modeAbsenAktif || 'Masuk';
+            const curDate = new Date().toISOString().split('T')[0];
+            const firstName = student.nama.split(' ')[0];
+            
+            const exists = window.appData.attendance.find(a => String(a.nis) === String(student.nis) && a.tanggalOnly === curDate && a.mode === curMode);
+            
+            if(exists) {
+                window.speakNotification(`${firstName}, sudah absen ${curMode}.`);
+                return Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Sudah Tercatat!', text: `${student.nama} sudah absen ${curMode} hari ini.`, showConfirmButton: false, timer: 2500 });
+            }
+
+            const record = { 
+                id: 'ATT_' + Date.now() + Math.floor(Math.random()*100), 
+                waktu: new Date().toLocaleString('id-ID'), 
+                tanggalOnly: curDate, 
+                nis: student.nis, 
+                nama: student.nama, 
+                kelas: student.kelas, 
+                status: status,
+                mode: curMode 
+            };
+            
+            window.appData.attendance.push(record);
+            await window.saveToFirebase('attendance', record.id, record);
+            
+            window.speakNotification(`Terima kasih, ${firstName}.`);
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Berhasil (${curMode})`, text: student.nama, showConfirmButton: false, timer: 2000 });
+            
+            if(document.getElementById('rfidInput')) document.getElementById('rfidInput').value = '';
+        };
+
+        window.generateAlphaToday = async function() {
+            const curDate = new Date().toISOString().split('T')[0];
+            const absenHariIni = window.appData.attendance.filter(a => a.tanggalOnly === curDate).map(a => String(a.nis));
+            const belumAbsen = window.appData.students.filter(s => !absenHariIni.includes(String(s.nis)));
+            
+            if(belumAbsen.length === 0) return Swal.fire('Info', 'Semua siswa sudah tercatat kehadirannya hari ini.', 'info');
+            
+            const res = await Swal.fire({
+                title: 'Generate Alpha Massal?',
+                text: `Ditemukan ${belumAbsen.length} siswa yang belum absen hari ini. Tandai Alpha?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                confirmButtonText: 'Ya, Tandai Alpha'
+            });
+            
+            if(res.isConfirmed) {
+                window.showLoading(true, 'Memproses Alpha Massal...');
+                let c = 0;
+                for (const student of belumAbsen) {
+                    const record = { 
+                        id: 'ATT_ALPHA_' + Date.now() + c, 
+                        waktu: curDate + ' ' + new Date().toLocaleTimeString('id-ID'), 
+                        tanggalOnly: curDate, 
+                        nis: student.nis, 
+                        nama: student.nama, 
+                        kelas: student.kelas, 
+                        status: 'Tanpa Keterangan',
+                        mode: 'Alpha System'
+                    };
+                    window.appData.attendance.push(record);
+                    await window.saveToFirebase('attendance', record.id, record);
+                    c++;
+                }
+                window.showLoading(false);
+                window.applyFilterAbsen();
+                Swal.fire('Selesai', `${c} siswa berhasil ditandai Alpha.`, 'success');
+            }
+        };
+
+        function renderPelanggaran(container) {
+            const isOps = ['OPS','Admin','Wakabid Kesiswaan','Guru Piket','Guru BK','Admin/TU'].includes(window.currentUser.role);
+            if(!isOps && window.currentUser.role !== 'Wali Kelas' && window.currentUser.role !== 'Guru Mapel') {
+                container.innerHTML = `<div class="bg-white rounded-3xl shadow-sm border p-8 text-center"><h3 class="text-xl font-bold text-slate-800 mb-2">Akses Terbatas</h3><p class="text-sm text-slate-500">Hanya staf yang dapat mencatat pelanggaran.</p></div>`;
+                return;
+            }
+
+            let siswaOpts = window.appData.students.map(s => `<option value="${s.nis}">${s.nama} (${s.kelas})</option>`).join('');
+            let ruleOpts = window.appData.tataTertib.map(t => `<option value="${t.jenis}" data-poin="${t.poin}">${t.jenis} (+${t.poin} Poin)</option>`).join('');
+
+            container.innerHTML = `
+                <div class="bg-white rounded-3xl shadow-sm border p-6 space-y-6 max-w-2xl mx-auto">
+                    <div class="flex items-center space-x-3 border-b pb-4">
+                        <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                        <div><h3 class="text-xl font-bold">Catat Pelanggaran Siswa</h3><p class="text-xs text-slate-500">Input pelanggaran untuk memberikan poin indisipliner.</p></div>
+                    </div>
+                    <form onsubmit="window.submitPelanggaran(event)" class="space-y-5">
+                        <div><label class="block text-xs font-bold uppercase text-slate-600 mb-1">Tanggal</label><input type="date" id="vioDate" required class="form-input" value="${new Date().toISOString().split('T')[0]}"></div>
+                        <div><label class="block text-xs font-bold uppercase text-slate-600 mb-1">Siswa</label><select id="vioSiswa" required class="form-input"><option value="">-- Pilih Siswa --</option>${siswaOpts}</select></div>
+                        <div><label class="block text-xs font-bold uppercase text-slate-600 mb-1">Bentuk Pelanggaran</label><select id="vioJenis" required class="form-input" onchange="document.getElementById('vioPoin').value = this.options[this.selectedIndex].getAttribute('data-poin');"><option value="">-- Pilih Pelanggaran --</option>${ruleOpts}</select></div>
+                        <div><label class="block text-xs font-bold uppercase text-slate-600 mb-1">Poin</label><input type="number" id="vioPoin" readonly class="form-input bg-rose-50 text-rose-700 font-bold" placeholder="Pilih pelanggaran dulu..."></div>
+                        <div><label class="block text-xs font-bold uppercase text-slate-600 mb-1">Tindakan / Sanksi</label><input type="text" id="vioTindakan" required class="form-input" placeholder="Tindakan yang diberikan..."></div>
+                        <button type="submit" class="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl shadow-lg transition text-sm flex items-center justify-center"><i class="fa-solid fa-save mr-2"></i>Simpan Pelanggaran</button>
+                    </form>
+                </div>
+            `;
+        }
+
+        window.submitPelanggaran = async function(e) {
+            e.preventDefault();
+            const date = document.getElementById('vioDate').value;
+            const nis = document.getElementById('vioSiswa').value;
+            const jenis = document.getElementById('vioJenis').value;
+            const poin = parseInt(document.getElementById('vioPoin').value);
+            const tindakan = document.getElementById('vioTindakan').value;
+
+            const student = window.appData.students.find(s => String(s.nis) === nis);
+            if(!student) return Swal.fire('Error', 'Siswa tidak ditemukan', 'error');
+
+            const record = {
+                id: 'VIO_' + Date.now(),
+                tanggal: date,
+                tanggalStr: date + ' ' + new Date().toLocaleTimeString('id-ID'),
+                nis: student.nis,
+                nama: student.nama,
+                kelas: student.kelas,
+                jenis: jenis,
+                poin: poin,
+                tindakan: tindakan,
+                pelapor: window.currentUser.name
+            };
+
+            window.showLoading(true, 'Menyimpan Data...');
+            window.appData.violations.push(record);
+            await window.saveToFirebase('violations', record.id, record);
+            window.showLoading(false);
+            
+            Swal.fire({title: 'Sukses', text: 'Pelanggaran berhasil dicatat.', icon: 'success'});
+            e.target.reset();
+            document.getElementById('vioDate').value = new Date().toISOString().split('T')[0];
+        };
+
+        function renderKartuPelajar(container) {
+            const clsOpts = `<option value="ALL">Semua Kelas</option>` + window.appData.classes.map(c => `<option value="${c.nama}">${c.nama}</option>`).join('');
+            container.innerHTML = `
+                <div class="bg-white rounded-3xl shadow-sm border p-6 space-y-6">
+                    <div class="flex justify-between items-center border-b pb-4">
+                        <h3 class="text-xl font-bold">Kartu Pelajar (Masa Berlaku 3 Tahun)</h3>
+                        <div class="flex gap-2"><button onclick="window.print()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold">Print Kertas</button></div>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-2xl border grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm">
+                        <div><label class="form-label">Kelas</label><select onchange="window.cardSettings.filterKelas=this.value; window.renderCardsOnly();" class="form-input">${clsOpts}</select></div>
+                        <div><label class="form-label">Font Style</label><select onchange="window.cardSettings.font=this.value; window.renderCardsOnly();" class="form-input"><option value="Inter">Inter</option><option value="Arial">Arial</option><option value="Times New Roman">Times New Roman</option></select></div>
+                        <div><label class="form-label">Warna Utama</label><input type="color" value="#059669" onchange="window.cardSettings.customColor=this.value; window.renderCardsOnly();" class="form-input h-10 p-1"></div>
+                        <div><label class="form-label">Ukuran Teks</label><input type="range" min="10" max="14" value="12" oninput="window.cardSettings.customFontSize=this.value; window.renderCardsOnly();" class="w-full accent-emerald-600"></div>
+                    </div>
+                    <div class="w-full overflow-x-auto pb-4"><div id="printableArea" class="grid grid-cols-1 md:grid-cols-2 gap-8 w-max min-w-full"></div></div>
+                </div>`;
+            window.renderCardsOnly();
+        }
+
+        window.renderCardsOnly = function() {
+            const area = document.getElementById('printableArea');
+            if(!area) return;
+            let targets = window.appData.students;
+            if(window.cardSettings.filterKelas !== 'ALL') targets = targets.filter(s => s.kelas === window.cardSettings.filterKelas);
+
+            area.innerHTML = targets.map(s => `
+                <div class="w-[85.6mm] h-[54mm] bg-white border border-slate-300 rounded-2xl p-4 shadow-xl flex flex-col justify-between relative overflow-hidden text-slate-800" style="font-family: '${window.cardSettings.font}', sans-serif; font-size: ${window.cardSettings.customFontSize}px;">
+                    <div class="flex justify-between items-start border-b pb-1" style="border-color: ${window.cardSettings.customColor}">
+                        <div class="flex items-center space-x-2">
+                            ${window.appData.schoolProfile.logo ? `<img src="${window.appData.schoolProfile.logo}" class="w-7 h-7 object-contain">` : ''}
+                            <div><h4 class="font-bold text-[11px] uppercase">${window.appData.schoolProfile.nama}</h4><p class="text-[7px] font-bold" style="color: ${window.cardSettings.customColor}">KARTU PELAJAR</p></div>
+                        </div>
+                    </div>
+                    <div class="flex space-x-3 items-center my-auto">
+                        <div class="w-16 h-20 bg-slate-200 rounded border overflow-hidden shrink-0 flex items-center justify-center">
+                            ${s.foto ? `<img src="${s.foto}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-user text-slate-400"></i>`}
+                        </div>
+                        <table class="w-full text-left leading-snug">
+                            <tr><td class="font-bold w-12" style="color: ${window.cardSettings.customColor}">Nama</td><td>: <strong>${s.nama}</strong></td></tr>
+                            <tr><td class="font-bold" style="color: ${window.cardSettings.customColor}">NIS</td><td>: ${s.nis}</td></tr>
+                            <tr><td class="font-bold" style="color: ${window.cardSettings.customColor}">Alamat</td><td>: ${s.alamat||'-'}</td></tr>
+                        </table>
+                    </div>
+                    <div class="pt-1 border-t flex justify-between items-center text-[7px]" style="border-color: ${window.cardSettings.customColor}">
+                        <span>Berlaku Selama Menjadi Siswa</span>
+                        <strong>KEPALA SEKOLAH</strong>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.initRekapAbsenFilters = function() {
+            const isRestricted = ['Siswa', 'Orang Tua'].includes(window.currentUser.role);
+            if (isRestricted) {
+                window.applyFilterAbsen();
+                return;
+            }
+
+            const isWali = window.currentUser.role === 'Wali Kelas';
+            const selK = document.getElementById('fKelas');
+            if(selK) {
+                if (isWali) {
+                    const guru = window.appData.teachers.find(t => t.nip === window.currentUser.identifier);
+                    const myClass = guru ? (guru.kelasWali || '') : '';
+                    selK.innerHTML = `<option value="${myClass}">${myClass || 'Kelas Binaan'}</option>`;
+                    selK.disabled = true;
+                } else {
+                    selK.innerHTML = '<option value="ALL">Semua Kelas</option>' + window.appData.classes.map(c => `<option value="${c.nama}">${c.nama}</option>`).join('');
+                    selK.disabled = false;
+                }
+            }
+            window.updateFAbsenSiswaOpts();
+        };
+
+        window.updateFAbsenSiswaOpts = function() {
+            const isWali = window.currentUser.role === 'Wali Kelas';
+            let fKelas = document.getElementById('fKelas')?.value || 'ALL';
+            
+            if (isWali) {
+                const guru = window.appData.teachers.find(t => t.nip === window.currentUser.identifier);
+                fKelas = guru ? (guru.kelasWali || '') : '';
+            }
+
+            const fSiswa = document.getElementById('fSiswa');
+            if(!fSiswa) return;
+            let list = window.appData.students;
+            if(fKelas !== 'ALL' && fKelas !== '') list = list.filter(s => s.kelas === fKelas);
+
+            list.sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
+            fSiswa.innerHTML = '<option value="ALL">Semua Siswa</option>' + list.map(s => `<option value="${s.nis}">${s.nama} (${s.nis})</option>`).join('');
+            window.applyFilterAbsen();
+        };
+
+        window.applyFilterAbsen = function() {
+            const isRestricted = ['Siswa', 'Orang Tua'].includes(window.currentUser.role);
+            let data = window.appData.attendance;
+
+            if(isRestricted) {
+                data = data.filter(a => String(a.nis) === String(window.currentUser.identifier));
+            } else {
+                const fk = document.getElementById('fKelas')?.value || 'ALL';
+                const fs = document.getElementById('fSiswa')?.value || 'ALL';
+                const fm = document.getElementById('fMulai')?.value;
+                const fa = document.getElementById('fAkhir')?.value;
+                const ft = document.getElementById('fStatus')?.value || 'ALL';
+
+                data = data.filter(a => {
+                    let pass = true;
+                    if(fk !== 'ALL' && fk !== '' && a.kelas !== fk) pass = false;
+                    if(fs !== 'ALL' && String(a.nis) !== String(fs)) pass = false;
+                    if(ft !== 'ALL' && !String(a.status).includes(ft)) pass = false;
+                    if(fm && a.tanggalOnly < fm) pass = false;
+                    if(fa && a.tanggalOnly > fa) pass = false;
+                    return pass;
+                });
+            }
+
+            const tbody = document.getElementById('tBodyAbsen');
+            let cH=0, cI=0, cS=0, cA=0;
+            const canEdit = ['OPS', 'Admin', 'Wakabid Kesiswaan', 'Admin/TU'].includes(window.currentUser.role);
+
+            if(tbody) {
+                tbody.innerHTML = data.length === 0 ? `<tr><td colspan="8" class="text-center py-6 text-slate-400">Tidak ada data.</td></tr>` : data.map(a => {
+                    if(String(a.status).includes('Hadir')) cH++;
+                    else if(String(a.status).includes('Ijin')) cI++;
+                    else if(String(a.status).includes('Sakit')) cS++;
+                    else cA++;
+
+                    return `<tr class="border-b hover:bg-slate-50">
+                        <td class="p-3 text-center no-print"><input type="checkbox" class="chk-rekap-absen w-4 h-4 cursor-pointer accent-emerald-600" value="${a.id}"></td>
+                        <td class="p-3 text-xs">${a.waktu}</td><td class="p-3 font-semibold">${a.nis}</td><td class="p-3">${a.nama}</td><td class="p-3">${a.kelas||'-'}</td>
+                        <td class="p-3"><span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold">${a.status}</span></td>
+                        <td class="p-3 text-xs">${a.mode||'Masuk'}</td>
+                        ${canEdit ? `<td class="p-3 text-center no-print"><button onclick="window.editAbsen('${a.id}')" class="text-emerald-600 mr-2"><i class="fa-solid fa-pen"></i></button><button onclick="window.deleteAbsen('${a.id}')" class="text-rose-500"><i class="fa-solid fa-trash"></i></button></td>` : ''}
+                    </tr>`;
+                }).join('');
+            }
+
+            const sumBox = document.getElementById('rekapAbsenSummary');
+            if(sumBox) {
+                sumBox.innerHTML = `
+                    <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-2xl flex justify-between items-center">
+                        <div><h4 class="font-bold text-blue-900">Rekapitulasi Presensi</h4><p class="text-xs text-blue-700">Total: ${data.length} aktivitas</p></div>
+                        <div class="flex gap-3 text-center">
+                            <div class="bg-white px-3 py-1.5 rounded-lg border"><span class="text-[10px] block text-slate-400">Hadir</span><strong class="text-emerald-600">${cH}</strong></div>
+                            <div class="bg-white px-3 py-1.5 rounded-lg border"><span class="text-[10px] block text-slate-400">Izin</span><strong class="text-blue-600">${cI}</strong></div>
+                            <div class="bg-white px-3 py-1.5 rounded-lg border"><span class="text-[10px] block text-slate-400">Sakit</span><strong class="text-amber-500">${cS}</strong></div>
+                            <div class="bg-white px-3 py-1.5 rounded-lg border"><span class="text-[10px] block text-slate-400">Alpha</span><strong class="text-rose-600">${cA}</strong></div>
+                        </div>
+                    </div>`;
+                sumBox.classList.remove('hidden');
+            }
+        };
+
+        window.deleteAbsen = async function(id) {
+            const res = await Swal.fire({ title: 'Hapus Presensi?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'Ya, Hapus' });
+            if(res.isConfirmed) {
+                window.appData.attendance = window.appData.attendance.filter(x => x.id !== id);
+                await window.deleteFromFirebase('attendance', id);
+                window.applyFilterAbsen();
+                Swal.fire({title: 'Terhapus', icon: 'success', timer: 1000, showConfirmButton: false});
+            }
+        };
+
+        window.editAbsen = async function(id) {
+            const att = window.appData.attendance.find(x => x.id === id);
+            if(!att) return;
+            const { value: val } = await Swal.fire({
+                title: 'Edit Presensi',
+                html: `<div class="swal-grid"><div><label class="form-label">Status</label><select id="e-status" class="form-input"><option value="Hadir" ${att.status==='Hadir'?'selected':''}>Hadir</option><option value="Ijin" ${att.status==='Ijin'?'selected':''}>Ijin</option><option value="Sakit" ${att.status==='Sakit'?'selected':''}>Sakit</option><option value="Tanpa Keterangan" ${att.status==='Tanpa Keterangan'?'selected':''}>Alpha</option></select></div></div>`,
+                focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan',
+                preConfirm: () => ({ status: document.getElementById('e-status').value })
+            });
+            if(val) {
+                att.status = val.status;
+                await window.saveToFirebase('attendance', id, att);
+                window.applyFilterAbsen();
+            }
+        };
+
+        window.initRekapVioFilters = function() {
+            const isRestricted = ['Siswa', 'Orang Tua'].includes(window.currentUser.role);
+            if (isRestricted) {
+                window.applyFilterPelanggaran();
+                return;
+            }
+
+            const isWali = window.currentUser.role === 'Wali Kelas';
+            const selK = document.getElementById('fvKelas');
+            if(selK) {
+                if (isWali) {
+                    const guru = window.appData.teachers.find(t => t.nip === window.currentUser.identifier);
+                    const myClass = guru ? (guru.kelasWali || '') : '';
+                    selK.innerHTML = `<option value="${myClass}">${myClass || 'Kelas Binaan'}</option>`;
+                    selK.disabled = true;
+                } else {
+                    selK.innerHTML = '<option value="ALL">Semua Kelas</option>' + window.appData.classes.map(c => `<option value="${c.nama}">${c.nama}</option>`).join('');
+                    selK.disabled = false;
+                }
+            }
+            window.updateFvSiswaOpts();
+        };
+
+        window.updateFvSiswaOpts = function() {
+            const isWali = window.currentUser.role === 'Wali Kelas';
+            let fvKelas = document.getElementById('fvKelas')?.value || 'ALL';
+            
+            if (isWali) {
+                const guru = window.appData.teachers.find(t => t.nip === window.currentUser.identifier);
+                fvKelas = guru ? (guru.kelasWali || '') : '';
+            }
+
+            const fvSiswa = document.getElementById('fvSiswa');
+            if(!fvSiswa) return;
+            let list = window.appData.students;
+            if(fvKelas !== 'ALL' && fvKelas !== '') list = list.filter(s => s.kelas === fvKelas);
+
+            list.sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
+            fvSiswa.innerHTML = '<option value="ALL">Semua Siswa</option>' + list.map(s => `<option value="${s.nis}">${s.nama} (${s.nis})</option>`).join('');
+            window.applyFilterPelanggaran();
+        };
+
+        window.applyFilterPelanggaran = function() {
+            const isRestricted = ['Siswa', 'Orang Tua'].includes(window.currentUser.role);
+            let data = window.appData.violations;
+
+            if(isRestricted) {
+                data = data.filter(v => String(v.nis) === String(window.currentUser.identifier));
+            } else {
+                const fk = document.getElementById('fvKelas')?.value || 'ALL';
+                const fs = document.getElementById('fvSiswa')?.value || 'ALL';
+                const fm = document.getElementById('fvMulai')?.value;
+                const fa = document.getElementById('fvAkhir')?.value;
+
+                data = data.filter(v => {
+                    let pass = true;
+                    if(fk !== 'ALL' && fk !== '' && v.kelas !== fk) pass = false;
+                    if(fs !== 'ALL' && String(v.nis) !== String(fs)) pass = false;
+                    if(fm && v.tanggal < fm) pass = false;
+                    if(fa && v.tanggal > fa) pass = false;
+                    return pass;
+                });
+            }
+
+            const tbody = document.getElementById('tBodyPelanggaran');
+            let totalPoin = 0;
+            const canEdit = ['OPS', 'Admin', 'Wakabid Kesiswaan', 'Admin/TU'].includes(window.currentUser.role);
+
+            if(tbody) {
+                tbody.innerHTML = data.length === 0 ? `<tr><td colspan="7" class="text-center py-6 text-slate-400">Tidak ada data pelanggaran.</td></tr>` : data.map(v => {
+                    totalPoin += parseInt(v.poin) || 0;
+                    return `<tr class="border-b hover:bg-slate-50">
+                        <td class="p-3 text-center no-print"><input type="checkbox" class="chk-rekap-vio w-4 h-4 cursor-pointer accent-emerald-600" value="${v.id}"></td>
+                        <td class="p-3 text-xs">${v.tanggalStr || v.tanggal}</td><td class="p-3 font-semibold">${v.nis}</td><td class="p-3">${v.nama}</td><td class="p-3">${v.kelas||'-'}</td>
+                        <td class="p-3">${v.jenis}</td><td class="p-3 font-bold text-rose-600">+${v.poin}</td>
+                        ${canEdit ? `<td class="p-3 text-center no-print"><button onclick="window.editVio('${v.id}')" class="text-emerald-600 mr-2"><i class="fa-solid fa-pen"></i></button><button onclick="window.deleteVio('${v.id}')" class="text-rose-500"><i class="fa-solid fa-trash"></i></button></td>` : ''}
+                    </tr>`;
+                }).join('');
+            }
+
+            const sumBox = document.getElementById('rekapVioPoinSummary');
+            if(sumBox) {
+                sumBox.innerHTML = `
+                    <div class="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex justify-between items-center">
+                        <div><h4 class="font-bold text-rose-900">Rekapitulasi Poin</h4><p class="text-xs text-rose-700">Total kasus: ${data.length}</p></div>
+                        <div class="text-right"><span class="text-xs text-slate-500 block">Akumulasi Poin</span><span class="text-2xl font-black text-rose-700">${totalPoin}</span></div>
+                    </div>`;
+                sumBox.classList.remove('hidden');
+            }
+        };
+
+        window.deleteVio = async function(id) {
+            const res = await Swal.fire({ title: 'Hapus Pelanggaran?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'Ya, Hapus' });
+            if(res.isConfirmed) {
+                window.appData.violations = window.appData.violations.filter(x => x.id !== id);
+                await window.deleteFromFirebase('violations', id);
+                window.applyFilterPelanggaran();
+                Swal.fire({title: 'Terhapus', icon: 'success', timer: 1000, showConfirmButton: false});
+            }
+        };
+
+        window.editVio = async function(id) {
+            const v = window.appData.violations.find(x => x.id === id);
+            if(!v) return;
+            let ruleOpts = window.appData.tataTertib.map(t => `<option value="${t.jenis}" data-poin="${t.poin}" ${v.jenis===t.jenis?'selected':''}>${t.jenis} (${t.poin} Poin)</option>`).join('');
+            const { value: val } = await Swal.fire({
+                title: 'Edit Pelanggaran',
+                html: `<div class="swal-grid"><div class="swal-full"><label class="form-label">Jenis</label><select id="ev-jenis" class="form-input" onchange="document.getElementById('ev-poin').value=this.options[this.selectedIndex].getAttribute('data-poin')">${ruleOpts}</select></div><div><label class="form-label">Poin</label><input id="ev-poin" class="form-input font-bold text-rose-600" value="${v.poin}" readonly></div></div>`,
+                focusConfirm: false, showCancelButton: true, confirmButtonText: 'Simpan',
+                preConfirm: () => ({ jenis: document.getElementById('ev-jenis').value, poin: parseInt(document.getElementById('ev-poin').value) })
+            });
+            if(val) {
+                v.jenis = val.jenis;
+                v.poin = val.poin;
+                await window.saveToFirebase('violations', id, v);
+                window.applyFilterPelanggaran();
+            }
+        };
+
+        function renderRekapAbsensi(container) {
+            const isRestricted = ['Siswa', 'Orang Tua'].includes(window.currentUser.role);
+            const isWali = window.currentUser.role === 'Wali Kelas';
+            let canEdit = ['OPS', 'Admin', 'Wakabid Kesiswaan', 'Admin/TU'].includes(window.currentUser.role);
+
+            const filterPanelHtml = isRestricted ? '' : `
+                <div class="bg-slate-50 p-4 rounded-2xl border flex flex-col sm:flex-row gap-4 mb-4 items-center justify-between">
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 w-full">
+                        <div><label class="form-label">${isWali ? 'Kelas Binaan' : 'Kelas'}</label><select id="fKelas" onchange="window.updateFAbsenSiswaOpts()" class="form-input"></select></div>
+                        <div><label class="form-label">Siswa</label><select id="fSiswa" onchange="window.applyFilterAbsen()" class="form-input"><option value="ALL">Semua Siswa</option></select></div>
+                        <div><label class="form-label">Mulai</label><input type="date" id="fMulai" onchange="window.applyFilterAbsen()" class="form-input"></div>
+                        <div><label class="form-label">Akhir</label><input type="date" id="fAkhir" onchange="window.applyFilterAbsen()" class="form-input"></div>
+                        <div><label class="form-label">Status</label><select id="fStatus" onchange="window.applyFilterAbsen()" class="form-input"><option value="ALL">Semua</option><option value="Hadir">Hadir</option><option value="Ijin">Ijin</option><option value="Sakit">Sakit</option><option value="Tanpa Keterangan">Alpha</option></select></div>
+                    </div>
+                </div>
+                ${canEdit ? `<div class="mb-4"><button onclick="window.deleteSelected('attendance', 'chk-rekap-absen', 'renderRekapAbsensi')" class="px-4 py-2 bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-semibold hover:bg-rose-600 hover:text-white transition"><i class="fa-solid fa-trash-can mr-1"></i>Hapus Terpilih</button></div>` : ''}
+            `;
+
+            container.innerHTML = `
+                <div id="rekapAbsenPrintArea" class="bg-white rounded-3xl shadow-sm border p-6 space-y-6">
+                    <div class="flex justify-between items-center border-b pb-4">
+                        <h3 class="text-xl font-bold">Rekapitulasi Presensi ${isRestricted ? 'Pribadi' : ''}</h3>
+                        <div class="flex gap-2">
+                            <button onclick="window.exportRekapAbsenPDF()" class="px-4 py-2 bg-rose-600 text-white rounded-xl text-sm font-bold shadow hover:bg-rose-700 transition"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>
+                            <button onclick="window.exportRekapAbsenExcel()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow hover:bg-emerald-700 transition"><i class="fa-solid fa-file-excel mr-1"></i>Excel</button>
+                        </div>
+                    </div>
+                    ${filterPanelHtml}
+                    <div class="overflow-x-auto">
+                        <table id="tableRekapAbsenTarget" class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="p-3 w-10 text-center no-print"><input type="checkbox" onchange="window.toggleAllCheckboxes(this, 'chk-rekap-absen')" class="w-4 h-4 cursor-pointer accent-emerald-600"></th>
+                                    <th class="p-3">Waktu</th><th class="p-3">NIS</th><th class="p-3">Nama</th><th class="p-3">Kelas</th><th class="p-3">Status</th><th class="p-3">Mode</th>
+                                    ${canEdit?'<th class="p-3 text-center no-print">Aksi</th>':''}
+                                </tr>
+                            </thead>
+                            <tbody id="tBodyAbsen" class="divide-y"></tbody>
+                        </table>
+                    </div>
+                    <div id="rekapAbsenSummary" class="hidden"></div>
+                </div>`;
+            
+            window.initRekapAbsenFilters();
+        }
+
+        function renderRekapPelanggaran(container) {
+            const isRestricted = ['Siswa', 'Orang Tua'].includes(window.currentUser.role);
+            const isWali = window.currentUser.role === 'Wali Kelas';
+            let canEdit = ['OPS', 'Admin', 'Wakabid Kesiswaan', 'Admin/TU'].includes(window.currentUser.role);
+
+            let filterPanelHtml = '';
+            if (!isRestricted) {
+                filterPanelHtml = `
+                    <div class="bg-slate-50 p-4 rounded-2xl border grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+                        <div><label class="form-label">${isWali ? 'Kelas Binaan' : 'Kelas'}</label><select id="fvKelas" onchange="window.updateFvSiswaOpts()" class="form-input"></select></div>
+                        <div><label class="form-label">Siswa</label><select id="fvSiswa" onchange="window.applyFilterPelanggaran()" class="form-input"><option value="ALL">Semua Siswa</option></select></div>
+                        <div><label class="form-label">Mulai</label><input type="date" id="fvMulai" onchange="window.applyFilterPelanggaran()" class="form-input"></div>
+                        <div><label class="form-label">Akhir</label><input type="date" id="fvAkhir" onchange="window.applyFilterPelanggaran()" class="form-input"></div>
+                    </div>
+                    ${canEdit ? `<div class="mb-4"><button onclick="window.deleteSelected('violations', 'chk-rekap-vio', 'renderRekapPelanggaran')" class="px-4 py-2 bg-rose-100 text-rose-600 border border-rose-200 rounded-xl text-xs font-semibold hover:bg-rose-600 hover:text-white transition"><i class="fa-solid fa-trash-can mr-1"></i>Hapus Terpilih</button></div>` : ''}
+                `;
+            }
+
+            container.innerHTML = `
+                <div id="rekapVioPrintArea" class="bg-white rounded-3xl shadow-sm border p-6 space-y-6">
+                    <div class="flex justify-between items-center border-b pb-4">
+                        <h3 class="text-xl font-bold">Rekapitulasi Pelanggaran ${isRestricted ? 'Pribadi' : ''}</h3>
+                        <div class="flex gap-2">
+                            <button onclick="window.exportRekapVioPDF()" class="px-4 py-2 bg-rose-600 text-white rounded-xl text-sm font-bold shadow hover:bg-rose-700 transition"><i class="fa-solid fa-file-pdf mr-1"></i>PDF</button>
+                            <button onclick="window.exportRekapVioExcel()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-bold shadow hover:bg-emerald-700 transition"><i class="fa-solid fa-file-excel mr-1"></i>Excel</button>
+                        </div>
+                    </div>
+                    ${filterPanelHtml}
+                    <div class="overflow-x-auto">
+                        <table id="tableRekapVioTarget" class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="p-3 w-10 text-center no-print"><input type="checkbox" onchange="window.toggleAllCheckboxes(this, 'chk-rekap-vio')" class="w-4 h-4 cursor-pointer accent-emerald-600"></th>
+                                    <th class="p-3">Tanggal</th><th class="p-3">NIS</th><th class="p-3">Nama</th><th class="p-3">Kelas</th><th class="p-3">Pelanggaran</th><th class="p-3">Poin</th>
+                                    ${canEdit?'<th class="p-3 text-center no-print">Aksi</th>':''}
+                                </tr>
+                            </thead>
+                            <tbody id="tBodyPelanggaran" class="divide-y"></tbody>
+                        </table>
+                    </div>
+                    <div id="rekapVioPoinSummary" class="hidden"></div>
+                </div>`;
+            
+            window.initRekapVioFilters();
+        }
+
+        window.exportRekapAbsenPDF = function() {
+            const element = document.getElementById('rekapAbsenPrintArea');
+            if(!element) return;
+            const opt = { margin: 10, filename: 'Rekap_Presensi.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } };
+            html2pdf().from(element).set(opt).save();
+        };
+
+        window.exportRekapAbsenExcel = function() {
+            const table = document.getElementById('tableRekapAbsenTarget');
+            if(!table) return;
+            let html = table.outerHTML;
+            let blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+            let url = URL.createObjectURL(blob);
+            let a = document.createElement('a');
+            a.href = url;
+            a.download = 'Rekap_Presensi.xls';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+
+        window.exportRekapVioPDF = function() {
+            const element = document.getElementById('rekapVioPrintArea');
+            if(!element) return;
+            const opt = { margin: 10, filename: 'Rekap_Pelanggaran.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } };
+            html2pdf().from(element).set(opt).save();
+        };
+
+        window.exportRekapVioExcel = function() {
+            const table = document.getElementById('tableRekapVioTarget');
+            if(!table) return;
+            let html = table.outerHTML;
+            let blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel' });
+            let url = URL.createObjectURL(blob);
+            let a = document.createElement('a');
+            a.href = url;
+            a.download = 'Rekap_Pelanggaran.xls';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        };
+
+        function renderPesan(container) {
+            const isStudent = ['Siswa', 'Orang Tua'].includes(window.currentUser.role);
+            let classOpts = window.appData.classes.map(c => `<option value="${c.nama}">${c.nama}</option>`).join('');
+            let studentOpts = window.appData.students.map(s => `<option value="${s.nis}" data-kelas="${s.kelas}">${s.nama} (${s.kelas})</option>`).join('');
+
+            container.innerHTML = `
+                <div class="bg-white rounded-3xl shadow-sm border p-6 space-y-6 max-w-3xl mx-auto">
+                    <div class="flex items-center space-x-3 border-b pb-4">
+                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-envelope"></i></div>
+                        <div><h3 class="text-xl font-bold">Pesan & Surat Keterangan</h3><p class="text-xs text-slate-500">${isStudent ? 'Kirim surat izin/sakit langsung ke wali kelas.' : 'Kotak masuk surat dan pesan.'}</p></div>
+                    </div>
+                    <form onsubmit="window.submitPesan(event)" class="space-y-4">
+                        ${isStudent ? `
+                            <div class="p-4 bg-blue-50 text-blue-800 rounded-2xl text-xs font-semibold">
+                                <i class="fa-solid fa-info-circle mr-1"></i> Pesan Anda akan dikirimkan kepada Wali Kelas Anda.
+                            </div>
+                        ` : `
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div><label class="form-label">Filter Kelas Tujuan</label><select id="msgKelasFilter" onchange="window.filterMsgStudents(this.value)" class="form-input"><option value="ALL">Semua Kelas</option>${classOpts}</select></div>
+                                <div><label class="form-label">Pilih Siswa / Penerima</label><select id="msgSiswa" class="form-input"><option value="">-- Pilih Siswa --</option>${studentOpts}</select></div>
+                            </div>
+                        `}
+                        <div><label class="form-label">Subjek / Perihal</label><input type="text" id="msgSubjek" required class="form-input" placeholder="Misal: Surat Izin Tidak Masuk Sekolah"></div>
+                        <div><label class="form-label">Isi Pesan / Keterangan</label><textarea id="msgIsi" required rows="4" class="form-input" placeholder="Tuliskan alasan atau pesan..."></textarea></div>
+                        <div><label class="form-label">Lampiran Surat (JPG/PDF, Maks 500KB)</label><input type="file" id="msgFile" accept=".jpg,.jpeg,.png,.pdf" class="form-input p-2 text-xs"></div>
+                        <button type="submit" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow-lg transition text-sm">Kirim Pesan / Surat</button>
+                    </form>
+                </div>
+            `;
+        }
+
+        window.filterMsgStudents = function(kelasName) {
+            const sel = document.getElementById('msgSiswa');
+            if(!sel) return;
+            let list = window.appData.students;
+            if(kelasName !== 'ALL') list = list.filter(s => s.kelas === kelasName);
+            sel.innerHTML = '<option value="">-- Pilih Siswa --</option>' + list.map(s => `<option value="${s.nis}">${s.nama} (${s.kelas})</option>`).join('');
+        };
+
+        window.submitPesan = async function(e) {
+            e.preventDefault();
+            const subjek = document.getElementById('msgSubjek').value;
+            const isi = document.getElementById('msgIsi').value;
+            const fileInput = document.getElementById('msgFile');
+            
+            let fileB64 = '';
+            if (fileInput && fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                if (file.size > 500 * 1024) return Swal.fire('Error', 'Ukuran file lampiran maksimal 500KB', 'error');
+                fileB64 = await new Promise(r => { const reader = new FileReader(); reader.onload = () => r(reader.result); reader.readAsDataURL(file); });
+            }
+
+            const record = {
+                id: 'MSG_' + Date.now(),
+                tanggal: new Date().toLocaleString('id-ID'),
+                pengirim: window.currentUser.name,
+                rolePengirim: window.currentUser.role,
+                subjek: subjek,
+                isi: isi,
+                lampiran: fileB64
+            };
+
+            window.showLoading(true, 'Mengirim pesan...');
+            window.appData.messages.push(record);
+            await window.saveToFirebase('messages', record.id, record);
+            window.showLoading(false);
+
+            Swal.fire('Berhasil', 'Pesan dan surat berhasil dikirim.', 'success');
+            e.target.reset();
+        };
+
+        function renderBackupRestore(container) {
+            container.innerHTML = `
+                <div class="bg-white rounded-3xl shadow-sm border p-6 space-y-6 max-w-2xl mx-auto">
+                    <div class="flex items-center space-x-3 border-b pb-4">
+                        <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center font-bold text-xl"><i class="fa-solid fa-server"></i></div>
+                        <div><h3 class="text-xl font-bold">Backup & Restore Data</h3><p class="text-xs text-slate-500">Unduh cadangan seluruh data sistem atau pulihkan dari file.</p></div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="p-4 bg-slate-50 rounded-2xl border flex justify-between items-center">
+                            <div><h4 class="font-bold text-sm">Unduh Cadangan (.json)</h4><p class="text-xs text-slate-500">Simpan salinan database lokal ke perangkat Anda.</p></div>
+                            <button onclick="window.downloadBackup()" class="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold shadow hover:bg-emerald-700 transition"><i class="fa-solid fa-download mr-1"></i>Download</button>
+                        </div>
+                        <div class="p-4 bg-slate-50 rounded-2xl border space-y-3">
+                            <div><h4 class="font-bold text-sm">Pulihkan Data (Restore)</h4><p class="text-xs text-slate-500">Pilih file .json cadangan untuk mengembalikan database.</p></div>
+                            <input type="file" id="restoreFile" accept=".json" class="form-input p-2 text-xs">
+                            <button onclick="window.processRestore()" class="w-full py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold shadow hover:bg-blue-700 transition"><i class="fa-solid fa-upload mr-1"></i>Unggah & Pulihkan</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        window.downloadBackup = function() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.appData, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `Backup_SIM_Kesiswaan_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        };
+
+        window.processRestore = function() {
+            const fileInput = document.getElementById('restoreFile');
+            if(!fileInput || fileInput.files.length === 0) return Swal.fire('Error', 'Pilih file backup terlebih dahulu.', 'error');
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    window.showLoading(true, 'Memulihkan data ke Cloud...');
+                    window.appData = parsed;
+                    localStorage.setItem('simKesiswaanCache', JSON.stringify(window.appData));
+                    
+                    for(const s of (window.appData.students||[])) { await window.saveToFirebase('students', s.nis, s); }
+                    for(const t of (window.appData.teachers||[])) { await window.saveToFirebase('teachers', t.nip, t); }
+                    for(const c of (window.appData.classes||[])) { await window.saveToFirebase('classes', c.id, c); }
+                    for(const tt of (window.appData.tataTertib||[])) { await window.saveToFirebase('tataTertib', tt.id, tt); }
+                    
+                    window.showLoading(false);
+                    Swal.fire('Sukses', 'Data berhasil dipulihkan seluruhnya!', 'success');
+                    window.navigateTo('dashboard');
+                } catch(err) {
+                    window.showLoading(false);
+                    Swal.fire('Gagal', 'Format file backup tidak valid: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        function renderPengaturan(container) {
+            if (window.currentUser.role !== 'OPS' && window.currentUser.role !== 'Admin') {
+                container.innerHTML = `<div class="bg-white rounded-3xl shadow-sm border p-8 text-center"><div class="w-16 h-16 bg-rose-100 text-rose-600 rounded-2xl mx-auto flex items-center justify-center text-2xl mb-4"><i class="fa-solid fa-lock"></i></div><h3 class="text-xl font-bold text-slate-800 mb-2">Akses Ditolak</h3><p class="text-sm text-slate-500">Hanya Administrator sistem yang memiliki wewenang untuk mengubah hak akses menu.</p></div>`;
+                return;
+            }
+
+            const menuList = [
+                { id: 'datamaster', label: 'Data Master' }, { id: 'absensi', label: 'Presensi / Scan' },
+                { id: 'pelanggaran', label: 'Pelanggaran' }, { id: 'kartupelajar', label: 'Kartu Pelajar' },
+                { id: 'tatatertibsekolah', label: 'Tata Tertib' },
+                { id: 'pengaturan', label: 'Hak Akses' }, { id: 'rekapabsensi', label: 'Rekap Presensi' },
+                { id: 'rekappelanggaran', label: 'Rekap Kasus' }, { id: 'pesan', label: 'Surat & Pesan' }
+            ];
+
+            let html = `
+                <div class="bg-white rounded-3xl shadow-sm border p-6 space-y-6">
+                    <div class="flex justify-between items-center border-b pb-4"><h3 class="text-xl font-bold">Konfigurasi Hak Akses Role (Peran)</h3><p class="text-xs text-slate-500 hidden sm:block">Perubahan akan langsung aktif secara otomatis.</p></div>
+                    <div class="overflow-x-auto custom-scroll pb-4">
+                        <table class="w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-slate-100">
+                                <tr>
+                                    <th class="p-3 sticky left-0 bg-slate-100 z-10 border-r border-white">Peran / Role Pengguna</th>
+                                    ${menuList.map(m => `<th class="p-3 text-center text-xs uppercase tracking-wider">${m.label}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+            `;
+
+            stdRoles.forEach(role => {
+                if (role === 'OPS') return;
+                const perms = getRolePermissions(role);
+                html += `<tr class="hover:bg-slate-50 transition"><td class="p-3 font-bold text-slate-700 sticky left-0 bg-white z-10 border-r border-slate-100">${role}</td>`;
+                menuList.forEach(m => {
+                    const isChecked = perms[m.id] === true || perms[m.id] === 'true' || perms[m.id] === 'TRUE' ? 'checked' : '';
+                    html += `<td class="p-3 text-center"><input type="checkbox" onchange="window.updatePermission('${role}', '${m.id}', this.checked)" class="w-5 h-5 accent-emerald-600 rounded cursor-pointer transition-transform hover:scale-110" ${isChecked}></td>`;
+                });
+                html += `</tr>`;
+            });
+
+            html += `</tbody></table></div></div>`;
+            container.innerHTML = html;
+        }
+
+        window.updatePermission = async function(role, menuId, isGranted) {
+            let perm = window.appData.permissions.find(p => p.role === role);
+            if (!perm) {
+                perm = { role: role, dashboard: true };
+                window.appData.permissions.push(perm);
+            }
+            perm[menuId] = isGranted;
+            await window.saveToFirebase('permissions', role.replace(/\s+/g, ''), perm); 
+            window.buildSidebar();
+        };
+    </script>
+</body>
+</html>
